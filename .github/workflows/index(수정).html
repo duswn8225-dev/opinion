@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주관식 의견 분석</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F6F9;--surface:#fff;--border:#E2E6EE;
+  --text:#0F172A;--muted:#64748B;--faint:#94A3B8;
+  --accent:#3B5BDB;--accent-bg:#EEF2FF;--accent-dark:#2F4AC0;
+  --pos:#0D9467;--pos-bg:#EDFAF4;--pos-border:#A7E9CC;
+  --neg:#DC2626;--neg-bg:#FEF2F2;--neg-border:#FBBFBF;
+  --neu:#B45309;--neu-bg:#FFFBEB;--neu-border:#FDE68A;
+  --r:12px;--r-sm:8px;
+}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.65;min-height:100vh}
+
+/* Layout */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px}
+.header-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:12px;height:56px}
+.logo{font-size:16px;font-weight:700;color:var(--accent)}
+.logo span{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
+.body{max-width:960px;margin:0 auto;padding:28px 24px 80px}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:16px}
+.card-head{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.card-head-icon{width:30px;height:30px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--accent-bg);color:var(--accent)}
+.card-title{font-size:14px;font-weight:600;color:var(--text)}
+.card-sub{font-size:12px;color:var(--muted);margin-top:1px}
+
+/* Steps */
+.step-row{display:flex;gap:8px;margin-bottom:24px}
+.step{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;display:flex;align-items:center;gap:10px}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step.active .step-num{background:var(--accent);border-color:var(--accent);color:#fff}
+.step-text{font-size:12px;color:var(--muted)}
+.step.active .step-text{color:var(--text);font-weight:500}
+
+/* Upload */
+.drop{border:1.5px dashed var(--border);border-radius:var(--r);padding:36px 20px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg)}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-bg)}
+.drop input{display:none}
+.drop-icon{font-size:32px;margin-bottom:10px}
+.drop-lbl{font-size:15px;font-weight:600;color:var(--text)}
+.drop-sub{font-size:12px;color:var(--faint);margin-top:4px}
+
+/* Sheet config */
+.sheet-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 16px;margin-bottom:8px}
+.sheet-nm{font-size:13px;font-weight:600;min-width:120px}
+.col-lbl{font-size:12px;color:var(--faint);white-space:nowrap}
+.col-sel{flex:1;min-width:150px;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface)}
+
+/* Input */
+.inp{width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;background:var(--bg);color:var(--text);outline:none;margin-top:10px;font-family:inherit}
+.inp:focus{border-color:var(--accent);background:#fff}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:var(--r-sm);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:.15s;font-family:inherit}
+.btn-primary{background:var(--accent);color:#fff;width:100%;margin-top:14px}
+.btn-primary:hover{background:var(--accent-dark)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{padding:9px 16px;font-size:13px;font-weight:500;background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-sm:hover{background:var(--bg)}
+
+/* Progress */
+.prog{margin-top:14px;display:none}
+.prog-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),#7C8EF7);border-radius:3px;transition:width .3s}
+.prog-lbl{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.stat{border-radius:var(--r);padding:18px;text-align:center;border:1px solid}
+.stat.pos{background:var(--pos-bg);border-color:var(--pos-border)}
+.stat.neg{background:var(--neg-bg);border-color:var(--neg-border)}
+.stat.neu{background:var(--neu-bg);border-color:var(--neu-border)}
+.stat-n{font-size:34px;font-weight:700;line-height:1}
+.stat.pos .stat-n{color:var(--pos)}
+.stat.neg .stat-n{color:var(--neg)}
+.stat.neu .stat-n{color:var(--neu)}
+.stat-pct{font-size:13px;font-weight:500;margin-top:4px}
+.stat.pos .stat-pct{color:var(--pos)}
+.stat.neg .stat-pct{color:var(--neg)}
+.stat.neu .stat-pct{color:var(--neu)}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--bg);border-radius:var(--r-sm);padding:4px;margin-bottom:20px}
+.tab{flex:1;padding:8px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;text-align:center;transition:.12s;border:none;background:transparent;font-family:inherit}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* Charts */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-box{background:var(--bg);border-radius:var(--r);padding:16px;border:1px solid var(--border)}
+.chart-title{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.04em}
+.chart-wrap{position:relative;height:200px}
+
+/* Opinion items */
+.op-section{margin-bottom:20px}
+.op-section-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.op-item{padding:11px 14px;border-radius:var(--r-sm);margin-bottom:6px;font-size:13px;line-height:1.7;border-left:3px solid transparent}
+.op-item.pos{background:var(--pos-bg);border-left-color:var(--pos)}
+.op-item.neg{background:var(--neg-bg);border-left-color:var(--neg)}
+.op-item.neu{background:var(--neu-bg);border-left-color:var(--neu)}
+.op-empty{font-size:13px;color:var(--faint);padding:8px 0}
+
+/* Keyword tags */
+.kw-group{margin-bottom:14px}
+.kw-group-title{font-size:12px;font-weight:600;margin-bottom:8px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;padding:4px 12px;border-radius:20px;font-weight:500}
+.tag.pos-tag{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-border)}
+.tag.neg-tag{background:var(--neg-bg);color:var(--neg);border:1px solid var(--neg-border)}
+.tag-cnt{opacity:.7;font-size:11px;margin-left:3px}
+
+/* Keyword editor */
+.kw-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.kw-col-title{font-size:12px;font-weight:600;margin-bottom:7px}
+.kw-col-title.pos{color:var(--pos)}
+.kw-col-title.neg{color:var(--neg)}
+textarea.kw-area{width:100%;height:130px;font-size:12px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r-sm);resize:vertical;background:var(--bg);font-family:inherit;line-height:1.75;outline:none}
+textarea.kw-area:focus{border-color:var(--accent);background:#fff}
+
+/* DL row */
+.dl-row{display:flex;gap:8px}
+
+/* Error */
+.err{font-size:13px;color:var(--neg);background:var(--neg-bg);border:1px solid var(--neg-border);padding:9px 13px;border-radius:var(--r-sm);margin-top:10px;display:none}
+
+/* Util */
+.hidden{display:none!important}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Sheet badge */
+.sheet-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--accent-bg);color:var(--accent);font-weight:600;margin-right:6px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">📊 주관식 의견 분석 <span>— 오프라인 동작</span></div>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- Steps -->
+  <div class="step-row">
+    <div class="step active" id="s1"><div class="step-num">1</div><div class="step-text">파일 업로드</div></div>
+    <div class="step" id="s2"><div class="step-num">2</div><div class="step-text">열 선택 & 분석</div></div>
+    <div class="step" id="s3"><div class="step-num">3</div><div class="step-text">결과 확인</div></div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card" id="uploadCard">
+    <div class="card-head"><div class="card-head-icon">📂</div><div><div class="card-title">파일 업로드</div><div class="card-sub">.xlsx / .xls / .csv 파일을 선택하세요</div></div></div>
+    <div class="drop" id="drop" onclick="document.getElementById('fi').click()">
+      <div class="drop-icon">📂</div>
+      <div class="drop-lbl">클릭하거나 드래그해서 파일 선택</div>
+      <div class="drop-sub">.xlsx · .xls · .csv 지원 · 시트 여러 개 가능</div>
+      <input type="file" id="fi" accept=".xlsx,.xls,.csv">
+    </div>
+    <div class="err" id="fileErr"></div>
+  </div>
+
+  <!-- Config -->
+  <div class="card hidden" id="cfgCard">
+    <div class="card-head"><div class="card-head-icon">⚙️</div><div><div class="card-title">분석 설정</div><div class="card-sub">주관식 의견이 있는 열을 선택하세요</div></div></div>
+    <div id="sheetList"></div>
+    <input class="inp" id="courseName" placeholder="과정명 입력 (선택사항 — 예: 2025 AI 기초과정)">
+    <button class="btn btn-primary" id="runBtn" onclick="runAnalysis()">🔍 분석 시작</button>
+    <div class="prog" id="prog">
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-lbl" id="progLbl">분석 준비 중...</div>
+    </div>
+    <div class="err" id="runErr"></div>
+  </div>
+
+  <!-- Keyword editor -->
+  <div class="card hidden" id="kwCard">
+    <div class="card-head"><div class="card-head-icon">🔑</div><div><div class="card-title">키워드 사전</div><div class="card-sub">한 줄에 하나씩 · 수정 후 재분석 가능</div></div></div>
+    <div class="kw-grid">
+      <div><div class="kw-col-title pos">😊 긍정 키워드</div><textarea class="kw-area" id="posKwArea"></textarea></div>
+      <div><div class="kw-col-title neg">🔧 개선 키워드</div><textarea class="kw-area" id="negKwArea"></textarea></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="hidden" id="resultSec">
+
+    <div class="card">
+      <div class="card-head"><div class="card-head-icon">📈</div><div><div class="card-title" id="resultTitle">분석 결과</div><div class="card-sub" id="resultSub"></div></div></div>
+      <div class="stats">
+        <div class="stat pos"><div class="stat-n" id="posN">0</div><div class="stat-pct" id="posPct">0%</div><div class="stat-lbl">😊 긍정</div></div>
+        <div class="stat neg"><div class="stat-n" id="negN">0</div><div class="stat-pct" id="negPct">0%</div><div class="stat-lbl">🔧 개선필요</div></div>
+        <div class="stat neu"><div class="stat-n" id="neuN">0</div><div class="stat-pct" id="neuPct">0%</div><div class="stat-lbl">😐 중립</div></div>
+      </div>
+
+      <!-- Charts -->
+      <div class="chart-row">
+        <div class="chart-box">
+          <div class="chart-title">감정 분포</div>
+          <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">시트별 의견 수</div>
+          <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('pos')">😊 긍정의견</button>
+        <button class="tab" onclick="switchTab('neg')">🔧 개선필요</button>
+        <button class="tab" onclick="switchTab('neu')">😐 중립</button>
+        <button class="tab" onclick="switchTab('kw')">🔑 키워드</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-pos">
+        <div id="posList"></div>
+      </div>
+      <div class="tab-panel" id="tab-neg">
+        <div id="negList"></div>
+      </div>
+      <div class="tab-panel" id="tab-neu">
+        <div id="neuList"></div>
+      </div>
+      <div class="tab-panel" id="tab-kw">
+        <div class="kw-group">
+          <div class="kw-group-title" style="color:var(--pos)">긍정 의견에서 자주 나온 단어</div>
+          <div class="tags" id="posKwTags"></div>
+        </div>
+        <div class="kw-group">
+          <div class="kw-group-title" style="color:var(--neg)">개선 의견에서 자주 나온 단어</div>
+          <div class="tags" id="negKwTags"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download -->
+    <div class="card">
+      <div class="card-head"><div class="card-head-icon">📥</div><div><div class="card-title">결과 내보내기</div></div></div>
+      <div class="dl-row">
+        <button class="btn btn-sm" onclick="dlCSV()">📋 CSV 다운로드</button>
+        <button class="btn btn-sm" onclick="dlExcel()">📊 Excel 다운로드</button>
+        <button class="btn btn-sm" onclick="resetAll()">🔄 다시 시작</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const DEFAULT_POS = `유익\n알차\n체계적\n실용적\n충실\n풍부\n다양\n균형\n전문적\n열정\n친절\n탁월\n우수\n도움\n만족\n훌륭\n흥미\n재미있\n최고\n추천\n효과적\n현업\n실무\n이해하기 쉬\n잘 구성\n잘 운영\n사례 중심\n현장 사례\n좋았\n명강\n역량\n성과\n발전`;
+const DEFAULT_NEG = `부족\n미흡\n아쉬\n어렵\n불편\n촉박\n너무 빠르\n너무 짧\n지루\n반복적\n개선\n보완\n추가\n늘려\n확대\n더 필요\n더 많이\n설명이 부족\n자료가 미흡\n준비가 미흡\n이론 위주\n피상적\n어수선\n미비\n실습 부족\n실습이 없\n시간 부족\n시간이 짧\n시간 배분\n내용 보강\n강의내용 보강\n이해하기 어렵\n속도가 빠르\n진도가 빠르\n현업과 거리\n집합교육\n오프라인`;
+const NEG_REQ=[/보강/,/확대/,/개선/,/추가/,/늘려/,/필요/,/요청/,/바랍니다/,/해주세요/,/해주시/,/부탁/,/하면 좋겠/,/하면 어떨까/,/했으면/];
+const NOISE_SET=new Set(['없음','없습니다','없어요','없다','없어','해당없음','해당사항없음','의견없음','이상없음','감사합니다','수고하셨습니다','좋습니다','좋아요','만족합니다','훌륭함','적절함','좋음','.','..','...','ㆍ','-','~','없','N/A']);
+const NOISE_SUB=['특별히 없','해당 없','의견 없','이상 없','딱히','특이사항'];
+
+document.getElementById('posKwArea').value=DEFAULT_POS;
+document.getElementById('negKwArea').value=DEFAULT_NEG;
+
+let wb=null,records=[];
+let pieChartInst=null,barChartInst=null;
+
+function isValid(t){
+  t=t.trim();
+  if(t.length<=2)return false;
+  if(NOISE_SET.has(t))return false;
+  if(NOISE_SUB.some(p=>t.includes(p)))return false;
+  if(/^[^가-힣a-zA-Z]+$/.test(t))return false;
+  return true;
+}
+
+// File
+const drop=document.getElementById('drop'),fi=document.getElementById('fi');
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+fi.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0])});
+
+function loadFile(file){
+  hideErr('fileErr');
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{wb=XLSX.read(e.target.result,{type:ext==='csv'?'string':'array'});buildConfig();}
+    catch{showErr('fileErr','파일을 읽을 수 없습니다.');}
+  };
+  ext==='csv'?reader.readAsText(file,'utf-8'):reader.readAsArrayBuffer(file);
+}
+
+function buildConfig(){
+  const list=document.getElementById('sheetList');
+  list.innerHTML='';
+  wb.SheetNames.forEach(name=>{
+    const data=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:''});
+    if(!data||data.length<2)return;
+    const row=document.createElement('div');
+    row.className='sheet-row';
+    row.innerHTML=`<div class="sheet-nm">📄 ${name}</div><span class="col-lbl">의견 열:</span>
+      <select class="col-sel" data-sheet="${name}">
+        <option value="">— 선택 안 함 —</option>
+        ${data[0].map((h,i)=>h?`<option value="${i}">${h}</option>`:'').join('')}
+      </select>`;
+    list.appendChild(row);
+  });
+  document.getElementById('cfgCard').classList.remove('hidden');
+  document.getElementById('kwCard').classList.remove('hidden');
+  setStep(2);
+}
+
+function classify(text,posKws,negKws){
+  const isReq=NEG_REQ.some(p=>p.test(text));
+  const pos=posKws.filter(kw=>text.includes(kw)).length;
+  const neg=negKws.filter(kw=>text.includes(kw)).length;
+  if(neg>0||(isReq&&pos===0))return'neg';
+  if(pos>0)return'pos';
+  return'neu';
+}
+
+function runAnalysis(){
+  hideErr('runErr');
+  const sels=document.querySelectorAll('.col-sel');
+  const tasks=[];
+  sels.forEach(sel=>{
+    if(!sel.value)return;
+    const data=XLSX.utils.sheet_to_json(wb.Sheets[sel.dataset.sheet],{header:1,defval:''});
+    const ops=data.slice(1).map(r=>String(r[+sel.value]||'').trim()).filter(isValid);
+    if(ops.length)tasks.push({sheet:sel.dataset.sheet,ops});
+  });
+  if(!tasks.length){showErr('runErr','분석할 시트와 열을 선택해주세요.');return;}
+
+  const posKws=document.getElementById('posKwArea').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const negKws=document.getElementById('negKwArea').value.split('\n').map(s=>s.trim()).filter(Boolean);
+
+  document.getElementById('runBtn').disabled=true;
+  const pg=document.getElementById('prog');pg.style.display='block';
+  records=[];
+
+  let done=0;
+  const total=tasks.reduce((s,t)=>s+t.ops.length,0);
+  tasks.forEach(({sheet,ops})=>{
+    ops.forEach(text=>{
+      records.push({sheet,text,label:classify(text,posKws,negKws)});
+      done++;
+      document.getElementById('progFill').style.width=`${Math.round(done/total*100)}%`;
+      document.getElementById('progLbl').textContent=`분석 중... ${done}/${total}건`;
+    });
+  });
+
+  document.getElementById('progFill').style.width='100%';
+  document.getElementById('progLbl').textContent='완료!';
+  setTimeout(()=>{pg.style.display='none';},400);
+
+  renderResults();
+  document.getElementById('runBtn').disabled=false;
+  setStep(3);
+}
+
+function topWords(texts,n=12){
+  const stop=new Set(['것','수','등','때','점','이','그','저','위','좀','더','는','도','을','가','에','로','의','및','또','매우','정말','가장','너무','많이','이런','저런','하고','해서']);
+  const freq={};
+  texts.forEach(t=>{(t.match(/[가-힣]{2,}/g)||[]).forEach(w=>{if(!stop.has(w))freq[w]=(freq[w]||0)+1;});});
+  return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([w,c])=>({w,c}));
+}
+
+function renderResults(){
+  const pos=records.filter(r=>r.label==='pos');
+  const neg=records.filter(r=>r.label==='neg');
+  const neu=records.filter(r=>r.label==='neu');
+  const total=records.length;
+
+  document.getElementById('posN').textContent=pos.length;
+  document.getElementById('negN').textContent=neg.length;
+  document.getElementById('neuN').textContent=neu.length;
+  document.getElementById('posPct').textContent=total?Math.round(pos.length/total*100)+'%':'0%';
+  document.getElementById('negPct').textContent=total?Math.round(neg.length/total*100)+'%':'0%';
+  document.getElementById('neuPct').textContent=total?Math.round(neu.length/total*100)+'%':'0%';
+
+  const courseName=document.getElementById('courseName').value.trim();
+  document.getElementById('resultTitle').textContent=(courseName||'분석 결과');
+  document.getElementById('resultSub').textContent=`총 ${total}건 분석 완료`;
+
+  // Pie Chart
+  if(pieChartInst)pieChartInst.destroy();
+  pieChartInst=new Chart(document.getElementById('pieChart'),{
+    type:'doughnut',
+    data:{
+      labels:['긍정','개선필요','중립'],
+      datasets:[{data:[pos.length,neg.length,neu.length],backgroundColor:['#0D9467','#DC2626','#B45309'],borderWidth:0,hoverOffset:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:12},padding:12}}}}
+  });
+
+  // Bar Chart by sheet
+  const sheets=[...new Set(records.map(r=>r.sheet))];
+  const sheetPos=sheets.map(s=>records.filter(r=>r.sheet===s&&r.label==='pos').length);
+  const sheetNeg=sheets.map(s=>records.filter(r=>r.sheet===s&&r.label==='neg').length);
+  const sheetNeu=sheets.map(s=>records.filter(r=>r.sheet===s&&r.label==='neu').length);
+
+  if(barChartInst)barChartInst.destroy();
+  barChartInst=new Chart(document.getElementById('barChart'),{
+    type:'bar',
+    data:{
+      labels:sheets,
+      datasets:[
+        {label:'긍정',data:sheetPos,backgroundColor:'#0D9467'},
+        {label:'개선필요',data:sheetNeg,backgroundColor:'#DC2626'},
+        {label:'중립',data:sheetNeu,backgroundColor:'#B45309'},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10}}},
+      scales:{x:{stacked:true,ticks:{font:{size:11}}},y:{stacked:true,ticks:{font:{size:11},stepSize:1}}}
+    }
+  });
+
+  // Opinion lists
+  const renderList=(items,cls,containerId)=>{
+    document.getElementById(containerId).innerHTML=items.length
+      ?items.map(r=>`<div class="op-item ${cls}"><span class="sheet-badge">${r.sheet}</span>${r.text}</div>`).join('')
+      :`<div class="op-empty">해당 의견이 없습니다.</div>`;
+  };
+  renderList(pos,'pos','posList');
+  renderList(neg,'neg','negList');
+  renderList(neu,'neu','neuList');
+
+  // Keywords
+  document.getElementById('posKwTags').innerHTML=topWords(pos.map(r=>r.text)).map(({w,c})=>`<span class="tag pos-tag">${w}<span class="tag-cnt">${c}</span></span>`).join('');
+  document.getElementById('negKwTags').innerHTML=topWords(neg.map(r=>r.text)).map(({w,c})=>`<span class="tag neg-tag">${w}<span class="tag-cnt">${c}</span></span>`).join('');
+
+  document.getElementById('resultSec').classList.remove('hidden');
+  document.getElementById('resultSec').scrollIntoView({behavior:'smooth'});
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const names=['pos','neg','neu','kw'];
+    t.classList.toggle('active',names[i]===name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('s'+i).classList.toggle('active',i<=n);
+  });
+}
+
+function dlCSV(){
+  let csv='\uFEFF시트,분류,의견\n';
+  records.forEach(r=>{const l=r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립';csv+=`"${r.sheet}","${l}","${r.text.replace(/"/g,'""')}"\n`;});
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),download:`의견분석_${new Date().toISOString().slice(0,10)}.csv`});
+  a.click();
+}
+
+function dlExcel(){
+  const newWb=XLSX.utils.book_new();
+  const rows=[['시트','분류','의견']];
+  records.forEach(r=>rows.push([r.sheet,r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립',r.text]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:16},{wch:10},{wch:70}];
+  XLSX.utils.book_append_sheet(newWb,ws,'분석결과');
+  XLSX.writeFile(newWb,`의견분석_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function resetAll(){
+  wb=null;records=[];
+  ['cfgCard','kwCard','resultSec'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('sheetList').innerHTML='';
+  document.getElementById('courseName').value='';
+  document.getElementById('fi').value='';
+  hideErr('fileErr');hideErr('runErr');
+  setStep(1);
+  if(pieChartInst){pieChartInst.destroy();pieChartInst=null;}
+  if(barChartInst){barChartInst.destroy();barChartInst=null;}
+}
+
+function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.style.display='block';}
+function hideErr(id){document.getElementById(id).style.display='none';}
+</script>
+</body>
+</html>

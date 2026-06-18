@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -28,7 +29,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .card-icon{width:28px;height:28px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--accent-bg)}
 .card-title{font-size:14px;font-weight:600}
 .card-sub{font-size:12px;color:var(--muted);margin-top:1px}
-
+ 
 /* Upload */
 .drop{border:1.5px dashed var(--border);border-radius:var(--r);padding:32px 20px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg)}
 .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-bg)}
@@ -36,7 +37,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .drop-icon{font-size:28px;margin-bottom:8px}
 .drop-lbl{font-size:15px;font-weight:600}
 .drop-sub{font-size:12px;color:var(--faint);margin-top:3px}
-
+ 
 /* Filters */
 .filter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .filter-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px}
@@ -50,12 +51,12 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .fcheck input{accent-color:var(--accent);width:13px;height:13px;flex-shrink:0}
 .filter-all{font-size:11px;color:var(--accent);cursor:pointer;margin-bottom:6px;font-weight:600}
 .filter-all:hover{text-decoration:underline}
-
+ 
 /* 문항 선택 */
 .qtype-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .qchip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:.12s}
 .qchip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-
+ 
 /* Buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 20px;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:.15s;font-family:inherit}
 .btn-primary{background:var(--accent);color:#fff;width:100%;margin-top:12px}
@@ -63,13 +64,13 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .btn-primary:disabled{opacity:.4;cursor:not-allowed}
 .btn-sm{padding:9px 16px;font-size:13px;font-weight:500;background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .btn-sm:hover{background:var(--bg)}
-
+ 
 /* Progress */
 .prog{margin-top:12px;display:none}
 .prog-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
 .prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .2s}
 .prog-lbl{font-size:12px;color:var(--muted);margin-top:5px}
-
+ 
 /* Stats */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
 .stat{border-radius:var(--r);padding:16px;text-align:center;border:1px solid}
@@ -85,26 +86,26 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .stat.neg .stat-pct{color:var(--neg)}
 .stat.neu .stat-pct{color:var(--neu)}
 .stat-lbl{font-size:12px;color:var(--muted);margin-top:2px}
-
+ 
 /* Charts */
 .chart-row{display:grid;grid-template-columns:260px 1fr;gap:14px;margin-bottom:18px}
 .chart-box{background:var(--bg);border-radius:var(--r);padding:16px;border:1px solid var(--border)}
 .chart-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:12px}
 .chart-wrap{position:relative;height:200px}
-
+ 
 /* Tabs */
 .tabs{display:flex;gap:2px;background:var(--bg);border-radius:var(--rs);padding:4px;margin-bottom:18px}
 .tab{flex:1;padding:8px 10px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;text-align:center;border:none;background:transparent;font-family:inherit;transition:.12s}
 .tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
-
+ 
 /* View switch */
 .view-sw{display:flex;align-items:center;gap:8px;margin-bottom:14px}
 .view-sw-lbl{font-size:12px;color:var(--muted);font-weight:600}
 .view-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:.12s}
 .view-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-
+ 
 /* Opinion items */
 .op-item{padding:11px 14px;border-radius:var(--rs);margin-bottom:6px;font-size:13px;line-height:1.7;border-left:3px solid transparent}
 .op-item.pos{background:var(--pos-bg);border-left-color:var(--pos)}
@@ -116,7 +117,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .badge-course{background:var(--accent-bg);color:var(--accent)}
 .badge-subject{background:#FFF7ED;color:#C2410C}
 .badge-inst{background:#F0FDF4;color:#166534}
-
+ 
 /* Group view */
 .group-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
 .group-head{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
@@ -130,7 +131,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .gms.pos{background:var(--pos-bg);color:var(--pos)}
 .gms.neg{background:var(--neg-bg);color:var(--neg)}
 .gms.neu{background:var(--neu-bg);color:var(--neu)}
-
+ 
 /* Keywords */
 .kw-group{margin-bottom:16px}
 .kw-group-title{font-size:12px;font-weight:600;margin-bottom:8px}
@@ -139,7 +140,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .tag.pos-tag{background:var(--pos-bg);color:var(--pos);border-color:var(--pos-bd)}
 .tag.neg-tag{background:var(--neg-bg);color:var(--neg);border-color:var(--neg-bd)}
 .tag-cnt{opacity:.65;font-size:10px;margin-left:2px}
-
+ 
 /* DL */
 .dl-row{display:flex;gap:8px}
 .err{font-size:13px;color:var(--neg);background:var(--neg-bg);border:1px solid var(--neg-bd);padding:9px 13px;border-radius:var(--rs);margin-top:10px;display:none}
@@ -148,16 +149,16 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 </style>
 </head>
 <body>
-
+ 
 <div class="header">
   <div class="header-inner">
     <span class="logo">📊 주관식 의견 분석</span>
     <span class="logo-sub">국가인재원 교육평가 지원 도구</span>
   </div>
 </div>
-
+ 
 <div class="body">
-
+ 
   <!-- Upload -->
   <div class="card" id="uploadCard">
     <div class="card-head"><div class="card-icon">📂</div><div><div class="card-title">파일 업로드</div><div class="card-sub">설문 결과 엑셀 파일을 업로드하세요 (CustomQuery 시트 자동 인식)</div></div></div>
@@ -169,17 +170,17 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
     </div>
     <div class="err" id="fileErr"></div>
   </div>
-
+ 
   <!-- Filter & Run -->
   <div class="card hidden" id="filterCard">
     <div class="card-head"><div class="card-icon">🔽</div><div><div class="card-title">분석 필터</div><div class="card-sub" id="totalInfo"></div></div></div>
-
+ 
     <!-- 문항 유형 선택 -->
     <div style="margin-bottom:14px">
       <div class="filter-title" style="margin-bottom:8px">분석할 문항 유형</div>
       <div class="qtype-row" id="qtypeRow"></div>
     </div>
-
+ 
     <!-- 과정 / 교과목 / 강사 -->
     <div class="filter-grid">
       <div class="filter-box">
@@ -198,7 +199,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <div class="filter-scroll" id="instFilter"></div>
       </div>
     </div>
-
+ 
     <div class="info-bar" id="filterInfo">필터를 설정하고 분석을 시작하세요.</div>
     <button class="btn btn-primary" id="runBtn" onclick="runAnalysis()">🔍 분석 시작</button>
     <div class="prog" id="prog">
@@ -207,10 +208,10 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
     </div>
     <div class="err" id="runErr"></div>
   </div>
-
+ 
   <!-- Results -->
   <div class="hidden" id="resultSec">
-
+ 
     <div class="card">
       <div class="card-head"><div class="card-icon">📈</div><div><div class="card-title" id="resultTitle">분석 결과</div><div class="card-sub" id="resultSub"></div></div></div>
       <div class="stats">
@@ -223,7 +224,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <div class="chart-box"><div class="chart-title">과정별 의견 수</div><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
       </div>
     </div>
-
+ 
     <!-- Tab card -->
     <div class="card">
       <div class="tabs">
@@ -232,7 +233,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <button class="tab" onclick="switchTab('neu')">😐 중립</button>
         <button class="tab" onclick="switchTab('kw')">🔑 키워드</button>
       </div>
-
+ 
       <!-- 보기 방식 -->
       <div class="view-sw" id="viewSw">
         <span class="view-sw-lbl">보기:</span>
@@ -241,7 +242,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <button class="view-btn" onclick="setView('subject')">교과목별</button>
         <button class="view-btn" onclick="setView('inst')">강사별</button>
       </div>
-
+ 
       <div class="tab-panel active" id="tab-pos"><div id="posList"></div></div>
       <div class="tab-panel" id="tab-neg"><div id="negList"></div></div>
       <div class="tab-panel" id="tab-neu"><div id="neuList"></div></div>
@@ -250,7 +251,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <div class="kw-group"><div class="kw-group-title" style="color:var(--neg)">개선 의견에서 자주 나온 단어</div><div class="tags" id="negKwTags"></div></div>
       </div>
     </div>
-
+ 
     <div class="card">
       <div class="card-head"><div class="card-icon">📥</div><div><div class="card-title">결과 내보내기</div></div></div>
       <div class="dl-row">
@@ -261,7 +262,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
     </div>
   </div>
 </div>
-
+ 
 <script>
 // ── 키워드
 const POS_KW=['유익','알차','체계적','실용적','충실','풍부','다양','균형','전문적','열정','친절','탁월','우수','도움','만족','훌륭','흥미','재미있','최고','추천','효과적','현업','실무','이해하기 쉬','잘 구성','잘 운영','사례 중심','현장 사례','좋았','명강','역량','성과','발전','명쾌','생동감','실제적'];
@@ -269,7 +270,7 @@ const NEG_KW=['부족','미흡','아쉬','어렵','불편','촉박','너무 빠�
 const NEG_REQ=[/보강/,/확대/,/개선/,/추가/,/늘려/,/필요/,/요청/,/바랍니다/,/해주세요/,/해주시/,/부탁/,/하면 좋겠/,/하면 어떨까/,/했으면/];
 const NOISE=new Set(['없음','없습니다','없어요','없다','없어','해당없음','해당사항없음','의견없음','이상없음','감사합니다','수고하셨습니다','좋습니다','좋아요','만족합니다','훌륭함','적절함','좋음','.','..','...','ㆍ','-','~','없','N/A','nan','NaN']);
 const NOISE_S=['특별히 없','해당 없','의견 없','이상 없','딱히','특이사항'];
-
+ 
 // 응답문항 → 유형 매핑
 function getQType(q){
   if(!q)return'기타';
@@ -279,7 +280,7 @@ function getQType(q){
   if(q.includes('교육기대')||q.includes('사전질문'))return'사전설문';
   return'기타';
 }
-
+ 
 function isValid(t){
   if(!t)return false;
   t=String(t).trim();
@@ -289,7 +290,7 @@ function isValid(t){
   if(/^[^가-힣a-zA-Z]+$/.test(t))return false;
   return true;
 }
-
+ 
 function classify(text){
   const isReq=NEG_REQ.some(p=>p.test(text));
   const pos=POS_KW.filter(kw=>text.includes(kw)).length;
@@ -298,20 +299,20 @@ function classify(text){
   if(pos>0)return'pos';
   return'neu';
 }
-
+ 
 let rawData=[];
 let records=[];
 let currentTab='pos';
 let currentView='all';
 let pieInst=null,barInst=null;
-
+ 
 // ── 파일 로드
 const drop=document.getElementById('drop'),fi=document.getElementById('fi');
 drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});
 drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
 drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
 fi.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0])});
-
+ 
 function loadFile(file){
   hideErr('fileErr');
   const reader=new FileReader();
@@ -327,10 +328,10 @@ function loadFile(file){
   };
   reader.readAsArrayBuffer(file);
 }
-
+ 
 function buildFilters(data){
   document.getElementById('totalInfo').textContent=`총 ${data.length.toLocaleString()}행 로드됨`;
-
+ 
   // 문항 유형
   const qtypes=[...new Set(data.map(r=>getQType(r['응답문항'])))].filter(q=>q!=='기타'&&q!=='사전설문');
   const qtypeRow=document.getElementById('qtypeRow');
@@ -349,18 +350,18 @@ function buildFilters(data){
   allChip.className='qchip';allChip.textContent='📋 전체 문항';
   allChip.onclick=()=>{document.querySelectorAll('.qchip').forEach(c=>c.classList.remove('active'));allChip.classList.add('active');};
   qtypeRow.appendChild(allChip);
-
+ 
   // 과정
   buildCheckList('courseFilter',data,'설문제목','course');
   // 교과목
   buildCheckList('subjectFilter',data,'과목명','subject');
   // 강사
   buildCheckList('instFilter',data,'강사명','inst');
-
+ 
   document.getElementById('filterCard').classList.remove('hidden');
   updateFilterInfo();
 }
-
+ 
 function buildCheckList(containerId,data,field,key){
   const vals=[...new Set(data.map(r=>r[field]).filter(v=>v&&String(v).trim()))].sort();
   const el=document.getElementById(containerId);
@@ -373,29 +374,29 @@ function buildCheckList(containerId,data,field,key){
     el.appendChild(lbl);
   });
 }
-
+ 
 function selectAll(key){
   const boxes=document.querySelectorAll(`input[data-key="${key}"]`);
   const allChecked=[...boxes].every(b=>b.checked);
   boxes.forEach(b=>{b.checked=!allChecked;});
   updateFilterInfo();
 }
-
+ 
 function getSelected(key){
   return [...document.querySelectorAll(`input[data-key="${key}"]:checked`)].map(b=>b.value);
 }
-
+ 
 function getSelectedQTypes(){
   const active=[...document.querySelectorAll('.qchip.active')].map(c=>c.dataset.qtype).filter(Boolean);
   return active.length?active:null; // null = 전체
 }
-
+ 
 function updateFilterInfo(){
   const courses=getSelected('course');
   const subjects=getSelected('subject');
   const insts=getSelected('inst');
   const qtypes=getSelectedQTypes();
-
+ 
   let filtered=rawData.filter(r=>{
     if(courses.length&&!courses.includes(String(r['설문제목']||'').trim()))return false;
     const subj=String(r['과목명']||'').trim();
@@ -405,10 +406,10 @@ function updateFilterInfo(){
     if(qtypes){const qt=getQType(r['응답문항']);if(!qtypes.includes(qt))return false;}
     return isValid(r['응답내용']);
   });
-
+ 
   document.getElementById('filterInfo').textContent=`현재 필터 기준: 유효 의견 ${filtered.length.toLocaleString()}건`;
 }
-
+ 
 // ── 분석
 function runAnalysis(){
   hideErr('runErr');
@@ -416,7 +417,7 @@ function runAnalysis(){
   const subjects=getSelected('subject');
   const insts=getSelected('inst');
   const qtypes=getSelectedQTypes();
-
+ 
   const filtered=rawData.filter(r=>{
     if(courses.length&&!courses.includes(String(r['설문제목']||'').trim()))return false;
     const subj=String(r['과목명']||'').trim();
@@ -426,13 +427,13 @@ function runAnalysis(){
     if(qtypes){const qt=getQType(r['응답문항']);if(!qtypes.includes(qt))return false;}
     return isValid(r['응답내용']);
   });
-
+ 
   if(!filtered.length){showErr('runErr','필터 조건에 맞는 유효 의견이 없습니다.');return;}
-
+ 
   document.getElementById('runBtn').disabled=true;
   const pg=document.getElementById('prog');pg.style.display='block';
   records=[];
-
+ 
   filtered.forEach((r,i)=>{
     const text=String(r['응답내용']).trim();
     const qtype=getQType(r['응답문항']);
@@ -441,7 +442,7 @@ function runAnalysis(){
     if(qtype==='긍정경험') label=classify(text)==='neg'?'neg':'pos';
     else if(qtype==='개선방안'||qtype==='불만족이유') label=classify(text)==='pos'?'pos':'neg';
     else label=classify(text);
-
+ 
     records.push({
       text,
       label,
@@ -450,28 +451,28 @@ function runAnalysis(){
       inst:String(r['강사명']||'').trim(),
       qtype,
     });
-
+ 
     if(i%200===0){
       const pct=Math.round(i/filtered.length*100);
       document.getElementById('progFill').style.width=pct+'%';
       document.getElementById('progLbl').textContent=`분석 중... ${i}/${filtered.length}건`;
     }
   });
-
+ 
   document.getElementById('progFill').style.width='100%';
   document.getElementById('progLbl').textContent='완료!';
   setTimeout(()=>{pg.style.display='none';},400);
-
+ 
   renderResults();
   document.getElementById('runBtn').disabled=false;
 }
-
+ 
 function renderResults(){
   const pos=records.filter(r=>r.label==='pos');
   const neg=records.filter(r=>r.label==='neg');
   const neu=records.filter(r=>r.label==='neu');
   const total=records.length;
-
+ 
   document.getElementById('posN').textContent=pos.length;
   document.getElementById('negN').textContent=neg.length;
   document.getElementById('neuN').textContent=neu.length;
@@ -480,7 +481,7 @@ function renderResults(){
   document.getElementById('neuPct').textContent=total?Math.round(neu.length/total*100)+'%':'0%';
   document.getElementById('resultTitle').textContent='분석 결과';
   document.getElementById('resultSub').textContent=`총 ${total.toLocaleString()}건 분석`;
-
+ 
   // Pie
   if(pieInst)pieInst.destroy();
   pieInst=new Chart(document.getElementById('pieChart'),{
@@ -488,7 +489,7 @@ function renderResults(){
     data:{labels:['긍정','개선필요','중립'],datasets:[{data:[pos.length,neg.length,neu.length],backgroundColor:['#0D9467','#DC2626','#B45309'],borderWidth:0,hoverOffset:4}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10}}}}
   });
-
+ 
   // Bar (과정별 상위 10개)
   const courses=[...new Set(records.map(r=>r.course))].filter(Boolean);
   const topCourses=courses.sort((a,b)=>records.filter(r=>r.course===b).length-records.filter(r=>r.course===a).length).slice(0,8);
@@ -505,24 +506,24 @@ function renderResults(){
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}},scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,ticks:{font:{size:10},stepSize:1}}}}
   });
-
+ 
   renderLists();
   renderKeywords();
-
+ 
   document.getElementById('resultSec').classList.remove('hidden');
   document.getElementById('resultSec').scrollIntoView({behavior:'smooth'});
 }
-
+ 
 function renderLists(){
   ['pos','neg','neu'].forEach(lbl=>{
     const items=records.filter(r=>r.label===lbl);
     document.getElementById(lbl+'List').innerHTML=renderOpinionList(items,lbl);
   });
 }
-
+ 
 function renderOpinionList(items,lbl){
   if(!items.length)return`<div class="op-empty">해당 의견이 없습니다.</div>`;
-
+ 
   if(currentView==='all'){
     return items.map(r=>`
       <div class="op-item ${lbl}">
@@ -534,7 +535,7 @@ function renderOpinionList(items,lbl){
         ${r.text}
       </div>`).join('');
   }
-
+ 
   // 그룹별
   const groupKey={course:'course',subject:'subject',inst:'inst'}[currentView]||'course';
   const groups={};
@@ -543,7 +544,7 @@ function renderOpinionList(items,lbl){
     if(!groups[k])groups[k]=[];
     groups[k].push(r);
   });
-
+ 
   return Object.entries(groups).sort((a,b)=>b[1].length-a[1].length).map(([name,recs])=>`
     <div class="group-box">
       <div class="group-head" onclick="toggleGroup(this)">
@@ -555,7 +556,7 @@ function renderOpinionList(items,lbl){
       </div>
     </div>`).join('');
 }
-
+ 
 function toggleGroup(head){
   const body=head.nextElementSibling;
   body.classList.toggle('open');
@@ -564,7 +565,7 @@ function toggleGroup(head){
       ? head.querySelector('.group-cnt').textContent.replace('▾','▴')
       : head.querySelector('.group-cnt').textContent.replace('▴','▾');
 }
-
+ 
 function renderKeywords(){
   const topWords=(texts,n=15)=>{
     const stop=new Set(['것','수','등','때','점','이','그','저','위','좀','더','는','도','을','가','에','로','의','및','또','매우','정말','가장','너무','많이','이런','저런','하고','해서','하는','되는','있는','같은']);
@@ -577,7 +578,7 @@ function renderKeywords(){
   document.getElementById('posKwTags').innerHTML=topWords(pos).map(({w,c})=>`<span class="tag pos-tag">${w}<span class="tag-cnt">${c}</span></span>`).join('');
   document.getElementById('negKwTags').innerHTML=topWords(neg).map(({w,c})=>`<span class="tag neg-tag">${w}<span class="tag-cnt">${c}</span></span>`).join('');
 }
-
+ 
 function switchTab(name){
   currentTab=name;
   document.querySelectorAll('.tab').forEach((t,i)=>{
@@ -587,7 +588,7 @@ function switchTab(name){
   document.getElementById('tab-'+name).classList.add('active');
   document.getElementById('viewSw').style.display=name==='kw'?'none':'flex';
 }
-
+ 
 function setView(v){
   currentView=v;
   document.querySelectorAll('.view-btn').forEach((b,i)=>{
@@ -595,7 +596,7 @@ function setView(v){
   });
   renderLists();
 }
-
+ 
 function dlCSV(){
   let csv='\uFEFF과정명,교과목,강사명,문항유형,분류,의견\n';
   records.forEach(r=>{
@@ -605,7 +606,7 @@ function dlCSV(){
   const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),download:`의견분석_${new Date().toISOString().slice(0,10)}.csv`});
   a.click();
 }
-
+ 
 function dlExcel(){
   const XLSXmod=XLSX;
   const newWb=XLSXmod.utils.book_new();
@@ -614,7 +615,7 @@ function dlExcel(){
   const ws=XLSXmod.utils.aoa_to_sheet(rows);
   ws['!cols']=[{wch:20},{wch:20},{wch:16},{wch:12},{wch:10},{wch:60}];
   XLSXmod.utils.book_append_sheet(newWb,ws,'분석결과');
-
+ 
   // 과정별 요약 시트
   const courses=[...new Set(records.map(r=>r.course))].filter(Boolean);
   const sumRows=[['과정명','전체','긍정','개선필요','중립','긍정률(%)']];
@@ -628,10 +629,10 @@ function dlExcel(){
   const ws2=XLSXmod.utils.aoa_to_sheet(sumRows);
   ws2['!cols']=[{wch:24},{wch:8},{wch:8},{wch:10},{wch:8},{wch:10}];
   XLSXmod.utils.book_append_sheet(newWb,ws2,'과정별요약');
-
+ 
   XLSXmod.writeFile(newWb,`의견분석_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
-
+ 
 function resetAll(){
   rawData=[];records=[];
   document.getElementById('filterCard').classList.add('hidden');
@@ -641,7 +642,7 @@ function resetAll(){
   if(barInst){barInst.destroy();barInst=null;}
   hideErr('fileErr');hideErr('runErr');
 }
-
+ 
 function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.style.display='block';}
 function hideErr(id){document.getElementById(id).style.display='none';}
 </script>

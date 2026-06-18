@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주관식 의견 분석</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F7F8FA; --surface: #fff; --border: #E4E7EC;
+  --text: #111827; --muted: #6B7280; --faint: #9CA3AF;
+  --accent: #2563EB; --accent-bg: #EFF6FF;
+  --pos: #059669; --pos-bg: #ECFDF5;
+  --neg: #DC2626; --neg-bg: #FEF2F2;
+  --neu: #D97706; --neu-bg: #FFFBEB;
+  --r: 10px;
+}
+body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 80px; }
+h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 22px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 14px; }
+.drop { border: 1.5px dashed var(--border); border-radius: var(--r); padding: 32px; text-align: center; cursor: pointer; transition: .15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-bg); }
+.drop input { display: none; }
+.drop-icon { font-size: 26px; margin-bottom: 8px; }
+.drop-label { font-size: 14px; font-weight: 500; }
+.drop-sub { font-size: 12px; color: var(--faint); margin-top: 3px; }
+.sheet-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--bg); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+.sheet-nm { font-size: 13px; font-weight: 500; min-width: 110px; }
+.col-lbl { font-size: 12px; color: var(--faint); white-space: nowrap; }
+.col-sel { flex: 1; min-width: 150px; font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); }
+.text-inp { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg); outline: none; margin-top: 10px; }
+.text-inp:focus { border-color: var(--accent); background: #fff; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: .15s; width: 100%; margin-top: 12px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.btn-sm { width: auto; flex: 1; padding: 9px 14px; font-size: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-sm:hover { background: var(--bg); }
+.prog-wrap { margin-top: 12px; display: none; }
+.prog-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; }
+.prog-lbl { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+.stat { border-radius: 8px; padding: 14px; text-align: center; }
+.stat.pos { background: var(--pos-bg); }
+.stat.neg { background: var(--neg-bg); }
+.stat.neu { background: var(--neu-bg); }
+.stat-n { font-size: 30px; font-weight: 700; }
+.stat.pos .stat-n { color: var(--pos); }
+.stat.neg .stat-n { color: var(--neg); }
+.stat.neu .stat-n { color: var(--neu); }
+.stat-l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.op-item { padding: 10px 14px; border-radius: 8px; margin-bottom: 6px; font-size: 13px; line-height: 1.65; border-left: 3px solid transparent; }
+.op-item.pos { background: var(--pos-bg); border-left-color: var(--pos); }
+.op-item.neg { background: var(--neg-bg); border-left-color: var(--neg); }
+.op-item.neu { background: var(--neu-bg); border-left-color: var(--neu); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--accent-bg); color: var(--accent); font-weight: 500; }
+.tag.neg-tag { background: var(--neg-bg); color: var(--neg); }
+.kw-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+.kw-col-title { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.kw-col-title.pos { color: var(--pos); }
+.kw-col-title.neg { color: var(--neg); }
+textarea.kw-area { width: 100%; height: 120px; font-size: 12px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; resize: vertical; background: var(--bg); font-family: inherit; line-height: 1.7; }
+textarea.kw-area:focus { border-color: var(--accent); background: #fff; outline: none; }
+.dl-row { display: flex; gap: 8px; margin-top: 12px; }
+.hidden { display: none !important; }
+.err { font-size: 13px; color: var(--neg); background: var(--neg-bg); padding: 9px 12px; border-radius: 8px; margin-top: 8px; display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 주관식 의견 분석</h1>
+  <p class="sub">엑셀·CSV 업로드 → 긍정의견 및 개선방안 자동 분류 · 완전 오프라인 동작</p>
+
+  <div class="card">
+    <div class="card-title">파일 업로드</div>
+    <div class="drop" id="drop" onclick="document.getElementById('fi').click()">
+      <div class="drop-icon">📂</div>
+      <div class="drop-label">클릭하거나 파일을 드래그하세요</div>
+      <div class="drop-sub">.xlsx / .xls / .csv 지원</div>
+      <input type="file" id="fi" accept=".xlsx,.xls,.csv">
+    </div>
+    <div class="err" id="fileErr"></div>
+  </div>
+
+  <div class="card hidden" id="cfgCard">
+    <div class="card-title">분석 설정</div>
+    <div id="sheetList"></div>
+    <input class="text-inp" id="courseName" placeholder="과정명 (선택사항)">
+    <button class="btn btn-primary" id="runBtn" onclick="runAnalysis()">🔍 분석 시작</button>
+    <div class="prog-wrap" id="progWrap">
+      <div class="prog-bg"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-lbl" id="progLbl">분석 준비 중...</div>
+    </div>
+    <div class="err" id="runErr"></div>
+  </div>
+
+  <div class="card hidden" id="kwCard">
+    <div class="card-title">키워드 사전 편집 <span style="font-weight:400;color:var(--faint);font-size:11px">(한 줄에 하나씩 · 수정 후 재분석 가능)</span></div>
+    <div class="kw-editor">
+      <div>
+        <div class="kw-col-title pos">😊 긍정 키워드</div>
+        <textarea class="kw-area" id="posKwArea"></textarea>
+      </div>
+      <div>
+        <div class="kw-col-title neg">🔧 개선 키워드</div>
+        <textarea class="kw-area" id="negKwArea"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="hidden" id="resultSec">
+    <div class="card">
+      <div class="card-title">분석 결과 요약</div>
+      <div class="stats">
+        <div class="stat pos"><div class="stat-n" id="posN">0</div><div class="stat-l">😊 긍정</div></div>
+        <div class="stat neg"><div class="stat-n" id="negN">0</div><div class="stat-l">🔧 개선필요</div></div>
+        <div class="stat neu"><div class="stat-n" id="neuN">0</div><div class="stat-l">😐 중립</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--pos)">😊 긍정의견</div>
+      <div id="posList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--neg)">🔧 개선필요 의견</div>
+      <div id="negList"></div>
+    </div>
+    <div class="card hidden" id="neuCard">
+      <div class="card-title" style="color:var(--neu)">😐 중립 의견</div>
+      <div id="neuList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔑 주요 키워드</div>
+      <div style="margin-bottom:8px">
+        <span style="font-size:12px;color:var(--pos);font-weight:600">긍정 의견에서</span>
+        <div class="tags" id="posKwTags" style="margin-top:6px;margin-bottom:12px"></div>
+        <span style="font-size:12px;color:var(--neg);font-weight:600">개선 의견에서</span>
+        <div class="tags" id="negKwTags" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">결과 내보내기</div>
+      <div class="dl-row">
+        <button class="btn btn-sm" onclick="dlCSV()">📋 CSV</button>
+        <button class="btn btn-sm" onclick="dlExcel()">📊 Excel</button>
+        <button class="btn btn-sm" onclick="resetAll()">🔄 다시 시작</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_POS = `유익\n알차\n체계적\n실용적\n충실\n풍부\n다양\n균형\n전문적\n열정\n친절\n탁월\n우수\n도움\n만족\n훌륭\n흥미\n재미있\n최고\n추천\n효과적\n현업\n실무\n이해하기 쉬\n잘 구성\n잘 운영\n사례 중심\n현장 사례\n좋았\n명강\n역량`;
+const DEFAULT_NEG = `부족\n미흡\n아쉬\n어렵\n불편\n촉박\n너무 빠르\n너무 짧\n지루\n반복적\n개선\n보완\n추가\n늘려\n확대\n더 필요\n더 많이\n설명이 부족\n자료가 미흡\n준비가 미흡\n이론 위주\n피상적\n어수선\n미비\n실습 부족\n실습이 없\n시간 부족\n시간이 짧\n시간 배분\n내용 보강\n강의내용 보강\n이해하기 어렵\n속도가 빠르\n진도가 빠르\n현업과 거리\n집합교육`;
+const NEG_REQ = [/보강/,/확대/,/개선/,/추가/,/늘려/,/필요/,/요청/,/바랍니다/,/해주세요/,/해주시/,/부탁/,/하면 좋겠/,/하면 어떨까/,/했으면/];
+const NOISE_SET = new Set(['없음','없습니다','없어요','없다','없어','해당없음','해당사항없음','의견없음','이상없음','감사합니다','수고하셨습니다','좋습니다','좋아요','만족합니다','훌륭함','적절함','좋음','.','..','...','ㆍ','-','~','없','N/A']);
+const NOISE_SUB = ['특별히 없','해당 없','의견 없','이상 없','딱히','특이사항'];
+
+document.getElementById('posKwArea').value = DEFAULT_POS;
+document.getElementById('negKwArea').value = DEFAULT_NEG;
+
+let wb = null, records = [];
+
+function isValid(t) {
+  t = t.trim();
+  if (t.length <= 2) return false;
+  if (NOISE_SET.has(t)) return false;
+  if (NOISE_SUB.some(p => t.includes(p))) return false;
+  if (/^[^가-힣a-zA-Z]+$/.test(t)) return false;
+  return true;
+}
+
+const drop = document.getElementById('drop');
+const fi = document.getElementById('fi');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+fi.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+function loadFile(file) {
+  hideErr('fileErr');
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      wb = XLSX.read(e.target.result, { type: ext === 'csv' ? 'string' : 'array' });
+      buildConfig();
+    } catch { showErr('fileErr', '파일을 읽을 수 없습니다.'); }
+  };
+  ext === 'csv' ? reader.readAsText(file, 'utf-8') : reader.readAsArrayBuffer(file);
+}
+
+function buildConfig() {
+  const list = document.getElementById('sheetList');
+  list.innerHTML = '';
+  wb.SheetNames.forEach(name => {
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+    if (!data || data.length < 2) return;
+    const row = document.createElement('div');
+    row.className = 'sheet-row';
+    row.innerHTML = `<div class="sheet-nm">📄 ${name}</div><span class="col-lbl">의견 열:</span>
+      <select class="col-sel" data-sheet="${name}">
+        <option value="">— 선택 안 함 —</option>
+        ${data[0].map((h,i) => h ? `<option value="${i}">${h}</option>` : '').join('')}
+      </select>`;
+    list.appendChild(row);
+  });
+  document.getElementById('cfgCard').classList.remove('hidden');
+  document.getElementById('kwCard').classList.remove('hidden');
+}
+
+function classify(text, posKws, negKws) {
+  const isReq = NEG_REQ.some(p => p.test(text));
+  const pos = posKws.filter(kw => text.includes(kw)).length;
+  const neg = negKws.filter(kw => text.includes(kw)).length;
+  if (neg > 0 || (isReq && pos === 0)) return 'neg';
+  if (pos > 0) return 'pos';
+  return 'neu';
+}
+
+function runAnalysis() {
+  hideErr('runErr');
+  const sels = document.querySelectorAll('.col-sel');
+  const tasks = [];
+  sels.forEach(sel => {
+    if (!sel.value) return;
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[sel.dataset.sheet], { header: 1, defval: '' });
+    const ops = data.slice(1).map(r => String(r[+sel.value]||'').trim()).filter(isValid);
+    if (ops.length) tasks.push({ sheet: sel.dataset.sheet, ops });
+  });
+  if (!tasks.length) { showErr('runErr', '분석할 시트와 열을 하나 이상 선택해주세요.'); return; }
+
+  const posKws = document.getElementById('posKwArea').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const negKws = document.getElementById('negKwArea').value.split('\n').map(s=>s.trim()).filter(Boolean);
+
+  document.getElementById('runBtn').disabled = true;
+  const pw = document.getElementById('progWrap');
+  pw.style.display = 'block';
+  records = [];
+
+  let done = 0;
+  const total = tasks.reduce((s,t)=>s+t.ops.length,0);
+  tasks.forEach(({sheet,ops}) => {
+    ops.forEach(text => {
+      records.push({ sheet, text, label: classify(text, posKws, negKws) });
+      done++;
+      document.getElementById('progFill').style.width = `${Math.round(done/total*100)}%`;
+      document.getElementById('progLbl').textContent = `분석 중... ${done}/${total}`;
+    });
+  });
+
+  document.getElementById('progFill').style.width = '100%';
+  document.getElementById('progLbl').textContent = '완료!';
+  setTimeout(() => { pw.style.display = 'none'; }, 400);
+  renderResults();
+  document.getElementById('runBtn').disabled = false;
+}
+
+function topWords(texts, n=10) {
+  const stop = new Set(['것','수','등','때','점','이','그','저','위','좀','더','는','도','을','가','에','로','의','및','또','매우','정말','가장','너무','많이']);
+  const freq = {};
+  texts.forEach(t => { (t.match(/[가-힣]{2,}/g)||[]).forEach(w => { if (!stop.has(w)) freq[w]=(freq[w]||0)+1; }); });
+  return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([w,c])=>({w,c}));
+}
+
+function renderResults() {
+  const pos = records.filter(r=>r.label==='pos');
+  const neg = records.filter(r=>r.label==='neg');
+  const neu = records.filter(r=>r.label==='neu');
+  document.getElementById('posN').textContent = pos.length;
+  document.getElementById('negN').textContent = neg.length;
+  document.getElementById('neuN').textContent = neu.length;
+  document.getElementById('posList').innerHTML = pos.length ? pos.map(r=>`<div class="op-item pos">${r.text}</div>`).join('') : '<div style="color:var(--faint);font-size:13px">긍정 의견이 없습니다.</div>';
+  document.getElementById('negList').innerHTML = neg.length ? neg.map(r=>`<div class="op-item neg">${r.text}</div>`).join('') : '<div style="color:var(--faint);font-size:13px">개선 의견이 없습니다.</div>';
+  if (neu.length) { document.getElementById('neuList').innerHTML = neu.map(r=>`<div class="op-item neu">${r.text}</div>`).join(''); document.getElementById('neuCard').classList.remove('hidden'); }
+  else document.getElementById('neuCard').classList.add('hidden');
+  document.getElementById('posKwTags').innerHTML = topWords(pos.map(r=>r.text)).map(({w,c})=>`<span class="tag">${w} <b>${c}</b></span>`).join('');
+  document.getElementById('negKwTags').innerHTML = topWords(neg.map(r=>r.text)).map(({w,c})=>`<span class="tag neg-tag">${w} <b>${c}</b></span>`).join('');
+  document.getElementById('resultSec').classList.remove('hidden');
+  document.getElementById('resultSec').scrollIntoView({ behavior: 'smooth' });
+}
+
+function dlCSV() {
+  let csv = '\uFEFF시트,분류,의견\n';
+  records.forEach(r => { const l = r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립'; csv+=`"${r.sheet}","${l}","${r.text.replace(/"/g,'""')}"\n`; });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})), download: `의견분석_${new Date().toISOString().slice(0,10)}.csv` });
+  a.click();
+}
+
+function dlExcel() {
+  const newWb = XLSX.utils.book_new();
+  const rows = [['시트','분류','의견']];
+  records.forEach(r => rows.push([r.sheet, r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립', r.text]));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:16},{wch:10},{wch:70}];
+  XLSX.utils.book_append_sheet(newWb, ws, '분석결과');
+  XLSX.writeFile(newWb, `의견분석_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function resetAll() {
+  wb=null; records=[];
+  ['cfgCard','kwCard','resultSec'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('sheetList').innerHTML='';
+  document.getElementById('courseName').value='';
+  document.getElementById('fi').value='';
+  hideErr('fileErr'); hideErr('runErr');
+}
+
+function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.style.display='block';}
+function hideErr(id){document.getElementById(id).style.display='none';}
+</script>
+</body>
+</html>

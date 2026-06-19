@@ -264,15 +264,19 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
    Print styles
    ════════════════════════════════════ */
 @media print{
-  body *{visibility:hidden}
-  .dash-overlay, .dash-overlay *{visibility:visible}
-  .dash-overlay{position:absolute;inset:0;background:#fff}
+  html, body{height:auto!important;overflow:visible!important;margin:0;padding:0}
+  body > *:not(.dash-overlay){display:none!important}
+  .dash-overlay{
+    display:block!important;position:static!important;inset:auto;
+    background:#fff;overflow:visible!important;height:auto!important;
+  }
   .dash-toolbar{display:none!important}
   .dash-content{max-width:none;padding:0;margin:0}
   .dash-page{
     border:none;border-radius:0;box-shadow:none;
     margin:0;padding:14mm 12mm;
     break-after:page;page-break-after:always;
+    break-inside:avoid;
   }
   .dash-page:last-child{break-after:auto;page-break-after:auto}
   @page{size:A4;margin:0}
@@ -395,7 +399,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
   <div class="dash-toolbar">
     <div class="dash-toolbar-title">📊 분석 대시보드</div>
     <div class="dash-toolbar-actions">
-      <button class="btn btn-sm" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+      <button class="btn btn-sm" onclick="printDashboard()">🖨️ 인쇄 / PDF 저장</button>
       <button class="btn btn-sm" onclick="closeDashboard()">✕ 닫기</button>
     </div>
   </div>
@@ -1211,6 +1215,13 @@ function closeDashboard(){
   document.body.style.overflow='';
   dashCharts.forEach(c=>c.destroy());
   dashCharts=[];
+}
+
+function printDashboard(){
+  // 스크롤이 중간에 있으면 인쇄 시 빈 페이지가 생길 수 있어 최상단으로 리셋
+  document.getElementById('dashOverlay').scrollTop=0;
+  window.scrollTo(0,0);
+  setTimeout(()=>window.print(),50);
 }
 
 function resetAll(){

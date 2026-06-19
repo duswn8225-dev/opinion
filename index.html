@@ -132,6 +132,14 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .gms.neu{background:var(--neu-bg);color:var(--neu)}
 
 /* Hierarchical view */
+.course-box{border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px;overflow:hidden}
+.course-head{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:var(--accent-bg)}
+.course-head:hover{filter:brightness(0.98)}
+.course-title{font-size:15px;font-weight:700;color:var(--accent-dark);display:flex;align-items:center;gap:8px}
+.course-badge{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--surface);color:var(--accent);font-weight:600}
+.course-body{padding:14px 16px;display:none;background:var(--surface)}
+.course-body.open{display:block}
+
 .subj-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
 .subj-head{padding:13px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;background:var(--surface)}
 .subj-head:hover{background:#F8FAFC}
@@ -598,78 +606,108 @@ function renderResults(){
 
 // ── 교과목 > 강사 > 긍정/개선 계층형 렌더링
 function renderHierarchical(){
-  const subjects=[...new Set(records.map(r=>r.subject||'(교과목 미지정)'))];
-  subjects.sort((a,b)=>{
-    const aTotal=records.filter(r=>(r.subject||'(교과목 미지정)')===a).length;
-    const bTotal=records.filter(r=>(r.subject||'(교과목 미지정)')===b).length;
+  const courses=[...new Set(records.map(r=>r.course||'(과정 미지정)'))];
+  courses.sort((a,b)=>{
+    const aTotal=records.filter(r=>(r.course||'(과정 미지정)')===a).length;
+    const bTotal=records.filter(r=>(r.course||'(과정 미지정)')===b).length;
     return bTotal-aTotal;
   });
 
-  let html='';
-  subjects.forEach(subj=>{
-    const subjRecs=records.filter(r=>(r.subject||'(교과목 미지정)')===subj);
-    const subjPos=subjRecs.filter(r=>r.label==='pos').length;
-    const subjNeg=subjRecs.filter(r=>r.label==='neg').length;
+  let courseHtml='';
+  courses.forEach(course=>{
+    const courseRecs=records.filter(r=>(r.course||'(과정 미지정)')===course);
+    const coursePos=courseRecs.filter(r=>r.label==='pos').length;
+    const courseNeg=courseRecs.filter(r=>r.label==='neg').length;
 
-    // 강사 목록 (교과목 내에서)
-    const insts=[...new Set(subjRecs.map(r=>r.inst||'(강사 미지정)'))];
-    insts.sort((a,b)=>subjRecs.filter(r=>(r.inst||'(강사 미지정)')===b).length - subjRecs.filter(r=>(r.inst||'(강사 미지정)')===a).length);
+    // 교과목 목록 (과정 내에서)
+    const subjects=[...new Set(courseRecs.map(r=>r.subject||'(교과목 미지정)'))];
+    subjects.sort((a,b)=>{
+      const aTotal=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===a).length;
+      const bTotal=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===b).length;
+      return bTotal-aTotal;
+    });
 
-    let instHtml='';
-    insts.forEach(inst=>{
-      const instRecs=subjRecs.filter(r=>(r.inst||'(강사 미지정)')===inst);
-      const posRecs=instRecs.filter(r=>r.label==='pos');
-      const negRecs=instRecs.filter(r=>r.label==='neg');
+    let subjHtml='';
+    subjects.forEach(subj=>{
+      const subjRecs=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===subj);
+      const subjPos=subjRecs.filter(r=>r.label==='pos').length;
+      const subjNeg=subjRecs.filter(r=>r.label==='neg').length;
 
-      const posHtml=posRecs.length?`
-        <div class="hier-section">
-          <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
-          ${posRecs.map(r=>`<div class="op-item pos">${r.text}</div>`).join('')}
-        </div>`:'';
+      // 강사 목록 (교과목 내에서)
+      const insts=[...new Set(subjRecs.map(r=>r.inst||'(강사 미지정)'))];
+      insts.sort((a,b)=>subjRecs.filter(r=>(r.inst||'(강사 미지정)')===b).length - subjRecs.filter(r=>(r.inst||'(강사 미지정)')===a).length);
 
-      const negHtml=negRecs.length?`
-        <div class="hier-section">
-          <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
-          ${negRecs.map(r=>`<div class="op-item neg">${r.text}</div>`).join('')}
-        </div>`:'';
+      let instHtml='';
+      insts.forEach(inst=>{
+        const instRecs=subjRecs.filter(r=>(r.inst||'(강사 미지정)')===inst);
+        const posRecs=instRecs.filter(r=>r.label==='pos');
+        const negRecs=instRecs.filter(r=>r.label==='neg');
 
-      if(!posRecs.length&&!negRecs.length)return;
+        if(!posRecs.length&&!negRecs.length)return;
 
-      // 통합된 분반 목록 표시 (예: A반, B반)
-      const sections=[...new Set(instRecs.map(r=>r.section).filter(Boolean))].sort();
-      const sectionTag=sections.length?` <span style="font-size:11px;color:var(--faint);font-weight:400">(${sections.join(', ')})</span>`:'';
+        const posHtml=posRecs.length?`
+          <div class="hier-section">
+            <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
+            ${posRecs.map(r=>`<div class="op-item pos">${r.text}</div>`).join('')}
+          </div>`:'';
 
-      instHtml+=`
-        <div class="inst-box">
-          <div class="inst-head" onclick="toggleHier(this)">
-            <span class="inst-title">👨‍🏫 ${inst}${sectionTag}</span>
+        const negHtml=negRecs.length?`
+          <div class="hier-section">
+            <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
+            ${negRecs.map(r=>`<div class="op-item neg">${r.text}</div>`).join('')}
+          </div>`:'';
+
+        // 통합된 분반 목록 표시 (예: A반, B반)
+        const sections=[...new Set(instRecs.map(r=>r.section).filter(Boolean))].sort();
+        const sectionTag=sections.length?` <span style="font-size:11px;color:var(--faint);font-weight:400">(${sections.join(', ')})</span>`:'';
+
+        instHtml+=`
+          <div class="inst-box">
+            <div class="inst-head" onclick="toggleHier(this)">
+              <span class="inst-title">👨‍🏫 ${inst}${sectionTag}</span>
+              <span style="font-size:12px;color:var(--muted)">
+                <span style="color:var(--pos);font-weight:600">${posRecs.length}</span> / <span style="color:var(--neg);font-weight:600">${negRecs.length}</span> ▾
+              </span>
+            </div>
+            <div class="inst-body">
+              ${posHtml}${negHtml}
+            </div>
+          </div>`;
+      });
+
+      if(!instHtml)return;
+
+      subjHtml+=`
+        <div class="subj-box">
+          <div class="subj-head" onclick="toggleHier(this)">
+            <span class="subj-title">📚 ${subj} <span class="subj-badge">${subjRecs.length}건</span></span>
             <span style="font-size:12px;color:var(--muted)">
-              <span style="color:var(--pos);font-weight:600">${posRecs.length}</span> / <span style="color:var(--neg);font-weight:600">${negRecs.length}</span> ▾
+              😊 ${subjPos} · 🔧 ${subjNeg} ▾
             </span>
           </div>
-          <div class="inst-body">
-            ${posHtml}${negHtml}
+          <div class="subj-body">
+            ${instHtml}
           </div>
         </div>`;
     });
 
-    if(!instHtml)return;
+    if(!subjHtml)return;
 
-    html+=`
-      <div class="subj-box">
-        <div class="subj-head" onclick="toggleHier(this)">
-          <span class="subj-title">📚 ${subj} <span class="subj-badge">${subjRecs.length}건</span></span>
-          <span style="font-size:12px;color:var(--muted)">
-            😊 ${subjPos} · 🔧 ${subjNeg} ▾
+    courseHtml+=`
+      <div class="course-box">
+        <div class="course-head" onclick="toggleHier(this)">
+          <span class="course-title">🎓 ${course} <span class="course-badge">${courseRecs.length}건</span></span>
+          <span style="font-size:12px;color:var(--accent-dark);font-weight:600">
+            😊 ${coursePos} · 🔧 ${courseNeg} ▾
           </span>
         </div>
-        <div class="subj-body">
-          ${instHtml}
+        <div class="course-body open">
+          ${subjHtml}
         </div>
       </div>`;
   });
 
-  document.getElementById('hierList').innerHTML=html||'<div class="op-empty">분석된 의견이 없습니다.</div>';
+  document.getElementById('hierList').innerHTML=courseHtml||'<div class="op-empty">분석된 의견이 없습니다.</div>';
 }
 
 // ── 전체 목록 (긍정/개선 탭)

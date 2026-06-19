@@ -322,18 +322,33 @@ function loadFile(file){
   reader.onload=e=>{
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
-      // CustomQuery 시트 우선, 없으면 첫 시트
-      const sname=wb.SheetNames.includes('CustomQuery')?'CustomQuery':wb.SheetNames[0];
+
+      // '설문제목' 컬럼을 가진 시트를 우선 탐색 (시트명이 CustomQuery가 아니어도 대응)
+      let sname=null;
+      for(const n of wb.SheetNames){
+        const sample=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:'',range:0});
+        if(sample.length && Object.keys(sample[0]).includes('설문제목')){
+          sname=n; break;
+        }
+      }
+      if(!sname){
+        sname=wb.SheetNames.includes('CustomQuery')?'CustomQuery':wb.SheetNames[0];
+      }
+
       const data=XLSX.utils.sheet_to_json(wb.Sheets[sname],{defval:''});
       rawData=data;
-      buildFilters(data);
+      console.log('시트 목록:',wb.SheetNames,'선택된 시트:',sname,'행수:',data.length,'컬럼:',data.length?Object.keys(data[0]):[]);
+      buildFilters(data,sname);
     }catch(e){showErr('fileErr','파일을 읽을 수 없습니다: '+e.message);}
   };
   reader.readAsArrayBuffer(file);
 }
 
-function buildFilters(data){
-  document.getElementById('totalInfo').textContent=`총 ${data.length.toLocaleString()}행 로드됨`;
+function buildFilters(data,sname){
+  const cols=data.length?Object.keys(data[0]):[];
+  const hasExpected = cols.includes('설문제목');
+  document.getElementById('totalInfo').innerHTML=`시트 "${sname}" · 총 ${data.length.toLocaleString()}행 로드됨`+
+    (hasExpected?'':` <span style="color:var(--neg);font-weight:600">⚠ '설문제목' 컬럼을 찾을 수 없습니다. 현재 컬럼: ${cols.join(', ')||'(없음)'}</span>`);
 
   // 문항 유형
   const qtypes=[...new Set(data.map(r=>getQType(r['응답문항'])))].filter(q=>q!=='기타'&&q!=='사전설문');

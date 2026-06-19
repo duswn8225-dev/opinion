@@ -188,12 +188,12 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <div class="filter-scroll" id="courseFilter"></div>
       </div>
       <div class="filter-box">
-        <div class="filter-title">교과목</div>
+        <div class="filter-title">교과목 <span style="font-weight:400;text-transform:none;color:var(--faint)">(선택한 과정 기준)</span></div>
         <div class="filter-all" onclick="selectAll('subject')">전체 선택/해제</div>
         <div class="filter-scroll" id="subjectFilter"></div>
       </div>
       <div class="filter-box">
-        <div class="filter-title">강사명</div>
+        <div class="filter-title">강사명 <span style="font-weight:400;text-transform:none;color:var(--faint)">(선택한 과정 기준)</span></div>
         <div class="filter-all" onclick="selectAll('inst')">전체 선택/해제</div>
         <div class="filter-scroll" id="instFilter"></div>
       </div>
@@ -350,26 +350,49 @@ function buildFilters(data){
   allChip.onclick=()=>{document.querySelectorAll('.qchip').forEach(c=>c.classList.remove('active'));allChip.classList.add('active');};
   qtypeRow.appendChild(allChip);
 
-  // 과정
-  buildCheckList('courseFilter',data,'설문제목','course');
-  // 교과목
-  buildCheckList('subjectFilter',data,'과목명','subject');
-  // 강사
-  buildCheckList('instFilter',data,'강사명','inst');
+  // 과정 (최상위 — 변경 시 교과목/강사 갱신)
+  buildCheckList('courseFilter',data,'설문제목','course',refreshDependentFilters);
+  // 교과목 / 강사는 과정 선택에 따라 동적 구성
+  refreshDependentFilters();
 
   document.getElementById('filterCard').classList.remove('hidden');
   updateFilterInfo();
 }
 
-function buildCheckList(containerId,data,field,key){
+// 과정 선택에 따라 교과목/강사 목록을 다시 만든다
+function refreshDependentFilters(){
+  const selectedCourses=getSelected('course');
+  const scoped = selectedCourses.length
+    ? rawData.filter(r=>selectedCourses.includes(String(r['설문제목']||'').trim()))
+    : rawData;
+
+  const prevSubject=new Set(getSelected('subject'));
+  const prevInst=new Set(getSelected('inst'));
+  const subjectFirstBuild=document.getElementById('subjectFilter').children.length===0;
+  const instFirstBuild=document.getElementById('instFilter').children.length===0;
+
+  buildCheckList('subjectFilter',scoped,'과목명','subject',updateFilterInfo,
+    subjectFirstBuild?null:prevSubject);
+  buildCheckList('instFilter',scoped,'강사명','inst',updateFilterInfo,
+    instFirstBuild?null:prevInst);
+
+  updateFilterInfo();
+}
+
+function buildCheckList(containerId,data,field,key,onChange,prevSelected){
   const vals=[...new Set(data.map(r=>r[field]).filter(v=>v&&String(v).trim()))].sort();
   const el=document.getElementById(containerId);
   el.innerHTML='';
+  if(!vals.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--faint);padding:4px 2px">해당 항목 없음</div>';
+    return;
+  }
   vals.forEach(v=>{
+    const checked = prevSelected ? prevSelected.has(v) : true;
     const lbl=document.createElement('label');
     lbl.className='fcheck';
-    lbl.innerHTML=`<input type="checkbox" checked data-key="${key}" value="${v}"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${v}">${v}</span>`;
-    lbl.querySelector('input').addEventListener('change',updateFilterInfo);
+    lbl.innerHTML=`<input type="checkbox" ${checked?'checked':''} data-key="${key}" value="${v}"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${v}">${v}</span>`;
+    lbl.querySelector('input').addEventListener('change',onChange||updateFilterInfo);
     el.appendChild(lbl);
   });
 }
@@ -378,7 +401,8 @@ function selectAll(key){
   const boxes=document.querySelectorAll(`input[data-key="${key}"]`);
   const allChecked=[...boxes].every(b=>b.checked);
   boxes.forEach(b=>{b.checked=!allChecked;});
-  updateFilterInfo();
+  if(key==='course')refreshDependentFilters();
+  else updateFilterInfo();
 }
 
 function getSelected(key){

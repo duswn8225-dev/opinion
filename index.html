@@ -1030,7 +1030,8 @@ function openDashboard(){
   const neg=records.filter(r=>r.label==='neg');
   const neu=records.filter(r=>r.label==='neu');
 
-  const courseName=document.getElementById('courseName').value.trim();
+  const courseNameEl=document.getElementById('courseName');
+  const courseName=courseNameEl?courseNameEl.value.trim():'';
   const today=new Date();
   const dateStr=`${today.getFullYear()}. ${today.getMonth()+1}. ${today.getDate()}.`;
 

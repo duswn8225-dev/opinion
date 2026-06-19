@@ -252,12 +252,16 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
     </div>
 
     <div class="card">
-      <div class="card-head"><div class="card-icon">📥</div><div><div class="card-title">결과 내보내기</div></div></div>
+      <div class="card-head"><div class="card-icon">📥</div><div><div class="card-title">결과 내보내기</div><div class="card-sub">Excel은 분석결과·과정별요약·원본의견 전체가 한 파일에 담겨 나옵니다</div></div></div>
       <div class="dl-row">
-        <button class="btn btn-sm" onclick="dlCSV()">📋 CSV</button>
-        <button class="btn btn-sm" onclick="dlExcel()">📊 Excel</button>
+        <button class="btn btn-sm" onclick="dlCSV()">📋 CSV (분석결과만)</button>
+        <button class="btn btn-sm" onclick="dlExcel()">📊 Excel (분석결과+원본 전체)</button>
         <button class="btn btn-sm" onclick="resetAll()">🔄 다시 시작</button>
       </div>
+      <div class="dl-row" style="margin-top:8px">
+        <button class="btn btn-sm" style="border-color:var(--accent);color:var(--accent)" onclick="dlReportTemplate()">📄 주간 강사만족도 보고서 양식으로 다운로드</button>
+      </div>
+      <div style="font-size:11px;color:var(--faint);margin-top:6px">※ 교육생 주요의견 칸만 자동 입력되며, 만족도 점수·출강일 등은 직접 채우시면 됩니다.</div>
     </div>
   </div>
 </div>
@@ -633,13 +637,15 @@ function dlCSV(){
 function dlExcel(){
   const XLSXmod=XLSX;
   const newWb=XLSXmod.utils.book_new();
+
+  // 1) 분석결과 — 분류된 의견 (현재 필터·문항유형 기준)
   const rows=[['과정명','교과목','강사명','문항유형','분류','의견']];
   records.forEach(r=>rows.push([r.course,r.subject,r.inst,r.qtype,r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립',r.text]));
   const ws=XLSXmod.utils.aoa_to_sheet(rows);
   ws['!cols']=[{wch:20},{wch:20},{wch:16},{wch:12},{wch:10},{wch:60}];
   XLSXmod.utils.book_append_sheet(newWb,ws,'분석결과');
 
-  // 과정별 요약 시트
+  // 2) 과정별 요약
   const courses=[...new Set(records.map(r=>r.course))].filter(Boolean);
   const sumRows=[['과정명','전체','긍정','개선필요','중립','긍정률(%)']];
   courses.forEach(c=>{
@@ -653,7 +659,80 @@ function dlExcel(){
   ws2['!cols']=[{wch:24},{wch:8},{wch:8},{wch:10},{wch:8},{wch:10}];
   XLSXmod.utils.book_append_sheet(newWb,ws2,'과정별요약');
 
+  // 3) 원본의견 전체 — 업로드한 원본 데이터 그대로 (노이즈/필터 적용 전, 분류 전)
+  if(rawData.length){
+    const rawHeaders=Object.keys(rawData[0]);
+    const rawRows=[rawHeaders];
+    rawData.forEach(r=>rawRows.push(rawHeaders.map(h=>r[h]!==undefined&&r[h]!==null?String(r[h]):'')));
+    const ws3=XLSXmod.utils.aoa_to_sheet(rawRows);
+    ws3['!cols']=rawHeaders.map(h=>h==='응답내용'?{wch:60}:h==='응답문항'?{wch:40}:{wch:16});
+    XLSXmod.utils.book_append_sheet(newWb,ws3,'원본의견_전체');
+  }
+
   XLSXmod.writeFile(newWb,`의견분석_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── 주간 강사만족도 보고서 양식 다운로드
+// "주차 미입력 교육결과보고" 템플릿의 [주간 강사만족도] 시트 구조에 맞춤
+// 교육생 주요의견 칸만 분석된 의견으로 자동 채우고, 만족도 점수·출강일 등은 공란으로 둠
+function dlReportTemplate(){
+  if(!records.length){return;}
+  const XLSXmod=XLSX;
+  const newWb=XLSXmod.utils.book_new();
+
+  // 과정 > 교과목(강의제목 대용) 단위로 그룹핑
+  const courses=[...new Set(records.map(r=>r.course))].filter(Boolean);
+
+  const rows=[];
+  rows.push(['주차 미입력 주간 강사만족도 결과 ( ~ )']);
+  rows.push([]);
+  rows.push([]);
+  rows.push(['※ 교과목 만족도는 교육생 만족도임\n※ 주간 강사만족도 평균은 출강강사의 주간 만족도 평균\n※ 표시된 부분은 주요의견 확인 필요']);
+  rows.push([]);
+  rows.push([]);
+  rows.push(['연번','과 정 명','출강일','강 의 제 목','교과목','강사','','교육생 주요의견','비고']);
+  rows.push(['','','','','만족도','강사명','강사 만족도','','']);
+
+  let seq=1;
+  courses.forEach(course=>{
+    const subjects=[...new Set(records.filter(r=>r.course===course).map(r=>r.subject))].filter(Boolean);
+    const targetSubjects = subjects.length ? subjects : [''];
+
+    targetSubjects.forEach(subject=>{
+      const scoped=records.filter(r=>r.course===course && (subject?r.subject===subject:true));
+      if(!scoped.length)return;
+
+      const insts=[...new Set(scoped.map(r=>r.inst))].filter(Boolean);
+      const instName=insts.length===1?insts[0]:(insts.length>1?insts.join(', '):'');
+
+      // 긍정 + 개선 의견을 함께 묶어서 "교육생 주요의견" 칸에 줄바꿈으로 정리
+      const posOps=scoped.filter(r=>r.label==='pos').map(r=>'(긍정) '+r.text);
+      const negOps=scoped.filter(r=>r.label==='neg').map(r=>'(개선) '+r.text);
+      const opinionText=[...posOps.slice(0,3),...negOps.slice(0,3)].join('\n');
+
+      rows.push([
+        seq++,
+        course,
+        '',          // 출강일 — 직접 입력
+        subject||'', // 강의제목 — 교과목명으로 대체 표기 (직접 수정 가능)
+        '',          // 교과목 만족도 — 직접 입력
+        instName,
+        '',          // 강사 만족도 — 직접 입력
+        opinionText,
+        '',          // 비고
+      ]);
+    });
+  });
+
+  const ws=XLSXmod.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:26},{wch:10},{wch:30},{wch:11},{wch:13},{wch:12},{wch:45},{wch:11}];
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:8}}, // 제목
+    {s:{r:3,c:0},e:{r:3,c:8}}, // 안내문구
+  ];
+
+  XLSXmod.utils.book_append_sheet(newWb,ws,'주간 강사만족도');
+  XLSXmod.writeFile(newWb,`주간_강사만족도_보고서_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function resetAll(){

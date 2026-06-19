@@ -779,28 +779,36 @@ function dlReportTemplate(){
     const targetSubjects = subjects.length ? subjects : [''];
 
     targetSubjects.forEach(subject=>{
-      const scoped=records.filter(r=>r.course===course && (subject?r.subject===subject:true));
-      if(!scoped.length)return;
+      const subjScoped=records.filter(r=>r.course===course && (subject?r.subject===subject:true));
+      if(!subjScoped.length)return;
 
-      const insts=[...new Set(scoped.map(r=>r.inst))].filter(Boolean);
-      const instName=insts.length===1?insts[0]:(insts.length>1?insts.join(', '):'');
+      // 교과목 안에서 강사별로 행을 분리
+      const insts=[...new Set(subjScoped.map(r=>r.inst))].filter(Boolean);
+      const targetInsts = insts.length ? insts : [''];
 
-      // 긍정 + 개선 의견을 함께 묶어서 "교육생 주요의견" 칸에 줄바꿈으로 정리
-      const posOps=scoped.filter(r=>r.label==='pos').map(r=>'(긍정) '+r.text);
-      const negOps=scoped.filter(r=>r.label==='neg').map(r=>'(개선) '+r.text);
-      const opinionText=[...posOps.slice(0,3),...negOps.slice(0,3)].join('\n');
+      targetInsts.forEach(inst=>{
+        const scoped = inst
+          ? subjScoped.filter(r=>r.inst===inst)
+          : subjScoped.filter(r=>!r.inst);
+        if(!scoped.length)return;
 
-      rows.push([
-        seq++,
-        course,
-        '',          // 출강일 — 직접 입력
-        subject||'', // 강의제목 — 교과목명으로 대체 표기 (직접 수정 가능)
-        '',          // 교과목 만족도 — 직접 입력
-        instName,
-        '',          // 강사 만족도 — 직접 입력
-        opinionText,
-        '',          // 비고
-      ]);
+        // 긍정 + 개선 의견을 함께 묶어서 "교육생 주요의견" 칸에 줄바꿈으로 정리
+        const posOps=scoped.filter(r=>r.label==='pos').map(r=>'(긍정) '+r.text);
+        const negOps=scoped.filter(r=>r.label==='neg').map(r=>'(개선) '+r.text);
+        const opinionText=[...posOps.slice(0,3),...negOps.slice(0,3)].join('\n');
+
+        rows.push([
+          seq++,
+          course,
+          '',          // 출강일 — 직접 입력
+          subject||'', // 강의제목 — 교과목명으로 대체 표기 (직접 수정 가능)
+          '',          // 교과목 만족도 — 직접 입력
+          inst||'',
+          '',          // 강사 만족도 — 직접 입력
+          opinionText,
+          '',          // 비고
+        ]);
+      });
     });
   });
 

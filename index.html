@@ -309,6 +309,24 @@ function isValid(t){
   return true;
 }
 
+// "구민서 강사 ] - A반" 형태에서 강사명과 분반을 분리
+// 강사명: "구민서 강사" (대괄호 앞부분), 분반: "A반" (하이픈 뒤부분)
+function parseInstructor(raw){
+  const s=String(raw||'').trim();
+  if(!s)return{name:'',section:''};
+  // "이름 ] - 분반" 패턴
+  const m=s.match(/^(.*?)\s*\]\s*-\s*(.+)$/);
+  if(m){
+    return{name:m[1].trim(),section:m[2].trim()};
+  }
+  // "이름 - 분반" 패턴 (대괄호 없는 경우)
+  const m2=s.match(/^(.*?)\s*-\s*([A-Za-z가-힣0-9]+반)$/);
+  if(m2){
+    return{name:m2[1].trim(),section:m2[2].trim()};
+  }
+  return{name:s,section:''};
+}
+
 function classify(text){
   const isReq=NEG_REQ.some(p=>p.test(text));
   const pos=POS_KW.filter(kw=>text.includes(kw)).length;
@@ -407,7 +425,10 @@ function refreshDependentFilters(){
 
   buildCheckList('subjectFilter',scoped,'과목명','subject',updateFilterInfo,
     subjectFirstBuild?null:prevSubject);
-  buildCheckList('instFilter',scoped,'강사명','inst',updateFilterInfo,
+
+  // 강사 필터는 "이름 ] - 분반" 원본에서 분반을 제거한 순수 강사명만 보여줌 (중복 제거)
+  const instScoped=scoped.map(r=>({...r,__instName:parseInstructor(r['강사명']).name}));
+  buildCheckList('instFilter',instScoped,'__instName','inst',updateFilterInfo,
     instFirstBuild?null:prevInst);
 
   updateFilterInfo();
@@ -458,8 +479,8 @@ function updateFilterInfo(){
     if(courses.length&&!courses.includes(String(r['설문제목']||'').trim()))return false;
     const subj=String(r['과목명']||'').trim();
     if(subjects.length&&subj&&!subjects.includes(subj))return false;
-    const inst=String(r['강사명']||'').trim();
-    if(insts.length&&inst&&!insts.includes(inst))return false;
+    const instName=parseInstructor(r['강사명']).name;
+    if(insts.length&&instName&&!insts.includes(instName))return false;
     if(qtypes){const qt=getQType(r['응답문항']);if(!qtypes.includes(qt))return false;}
     return isValid(r['응답내용']);
   });
@@ -479,8 +500,8 @@ function runAnalysis(){
     if(courses.length&&!courses.includes(String(r['설문제목']||'').trim()))return false;
     const subj=String(r['과목명']||'').trim();
     if(subjects.length&&subj&&!subjects.includes(subj))return false;
-    const inst=String(r['강사명']||'').trim();
-    if(insts.length&&inst&&!insts.includes(inst))return false;
+    const instName=parseInstructor(r['강사명']).name;
+    if(insts.length&&instName&&!insts.includes(instName))return false;
     if(qtypes){const qt=getQType(r['응답문항']);if(!qtypes.includes(qt))return false;}
     return isValid(r['응답내용']);
   });
@@ -500,12 +521,15 @@ function runAnalysis(){
     else if(qtype==='개선방안'||qtype==='불만족이유') label=classify(text)==='pos'?'pos':'neg';
     else label=classify(text);
 
+    const parsed=parseInstructor(r['강사명']);
+
     records.push({
       text,
       label,
       course:String(r['설문제목']||'').trim(),
       subject:String(r['과목명']||'').trim(),
-      inst:String(r['강사명']||'').trim(),
+      inst:parsed.name,      // 분반 제거된 순수 강사명 — 같은 강사는 분반 달라도 하나로 묶임
+      section:parsed.section, // 분반명 (참고용)
       qtype,
     });
 
@@ -611,10 +635,14 @@ function renderHierarchical(){
 
       if(!posRecs.length&&!negRecs.length)return;
 
+      // 통합된 분반 목록 표시 (예: A반, B반)
+      const sections=[...new Set(instRecs.map(r=>r.section).filter(Boolean))].sort();
+      const sectionTag=sections.length?` <span style="font-size:11px;color:var(--faint);font-weight:400">(${sections.join(', ')})</span>`:'';
+
       instHtml+=`
         <div class="inst-box">
           <div class="inst-head" onclick="toggleHier(this)">
-            <span class="inst-title">👨‍🏫 ${inst}</span>
+            <span class="inst-title">👨‍🏫 ${inst}${sectionTag}</span>
             <span style="font-size:12px;color:var(--muted)">
               <span style="color:var(--pos);font-weight:600">${posRecs.length}</span> / <span style="color:var(--neg);font-weight:600">${negRecs.length}</span> ▾
             </span>
@@ -705,10 +733,10 @@ function switchTab(name){
 }
 
 function dlCSV(){
-  let csv='\uFEFF과정명,교과목,강사명,문항유형,분류,의견\n';
+  let csv='\uFEFF과정명,교과목,강사명,분반,문항유형,분류,의견\n';
   records.forEach(r=>{
     const l=r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립';
-    csv+=`"${r.course}","${r.subject}","${r.inst}","${r.qtype}","${l}","${r.text.replace(/"/g,'""')}"\n`;
+    csv+=`"${r.course}","${r.subject}","${r.inst}","${r.section||''}","${r.qtype}","${l}","${r.text.replace(/"/g,'""')}"\n`;
   });
   const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),download:`의견분석_${new Date().toISOString().slice(0,10)}.csv`});
   a.click();
@@ -719,10 +747,10 @@ function dlExcel(){
   const newWb=XLSXmod.utils.book_new();
 
   // 1) 분석결과 — 분류된 의견 (현재 필터·문항유형 기준)
-  const rows=[['과정명','교과목','강사명','문항유형','분류','의견']];
-  records.forEach(r=>rows.push([r.course,r.subject,r.inst,r.qtype,r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립',r.text]));
+  const rows=[['과정명','교과목','강사명','분반','문항유형','분류','의견']];
+  records.forEach(r=>rows.push([r.course,r.subject,r.inst,r.section||'',r.qtype,r.label==='pos'?'긍정':r.label==='neg'?'개선필요':'중립',r.text]));
   const ws=XLSXmod.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:20},{wch:20},{wch:16},{wch:12},{wch:10},{wch:60}];
+  ws['!cols']=[{wch:20},{wch:20},{wch:16},{wch:8},{wch:12},{wch:10},{wch:60}];
   XLSXmod.utils.book_append_sheet(newWb,ws,'분석결과');
 
   // 2) 과정별 요약
@@ -797,6 +825,10 @@ function dlReportTemplate(){
         const negOps=scoped.filter(r=>r.label==='neg').map(r=>'(개선) '+r.text);
         const opinionText=[...posOps.slice(0,3),...negOps.slice(0,3)].join('\n');
 
+        // 분반 정보 — 같은 강사가 여러 분반에 출강한 경우 참고용으로 표기
+        const sections=[...new Set(scoped.map(r=>r.section).filter(Boolean))].sort();
+        const sectionNote=sections.length?`분반: ${sections.join(', ')}`:'';
+
         rows.push([
           seq++,
           course,
@@ -806,7 +838,7 @@ function dlReportTemplate(){
           inst||'',
           '',          // 강사 만족도 — 직접 입력
           opinionText,
-          '',          // 비고
+          sectionNote, // 비고 — 통합된 분반 정보
         ]);
       });
     });

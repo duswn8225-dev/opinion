@@ -277,12 +277,20 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .dash-op-row.pos{background:var(--pos-bg);border-color:var(--pos)}
 .dash-op-row.neg{background:var(--neg-bg);border-color:var(--neg)}
 .dash-op-row-text{flex:1}
-.op-item{padding:11px 14px;border-radius:var(--rs);margin-bottom:6px;font-size:13px;line-height:1.7;border-left:3px solid transparent;cursor:grab;user-select:none;transition:box-shadow .15s}
+.op-item{padding:10px 14px;border-radius:var(--rs);margin-bottom:6px;font-size:13px;line-height:1.7;border-left:3px solid transparent;cursor:grab;user-select:none;transition:box-shadow .15s;display:flex;align-items:flex-start;gap:10px}
 .op-item:active{cursor:grabbing;box-shadow:0 4px 14px rgba(0,0,0,.15);opacity:.85}
 .op-item.dragging{opacity:.4}
 .op-item.pos{background:var(--pos-bg);border-left-color:var(--pos)}
 .op-item.neg{background:var(--neg-bg);border-left-color:var(--neg)}
 .op-item.neu{background:var(--neu-bg);border-left-color:var(--neu)}
+.op-item.selected{outline:2px solid var(--accent);outline-offset:1px}
+.op-item-cb{width:16px;height:16px;flex-shrink:0;margin-top:3px;accent-color:var(--accent);cursor:pointer}
+.op-item-body{flex:1;min-width:0}
+.op-sel-bar{display:none;align-items:center;gap:10px;padding:8px 14px;background:var(--accent-bg);border:1px solid #C7D2FE;border-radius:var(--rs);margin-bottom:10px;font-size:13px;color:var(--accent);font-weight:500}
+.op-sel-bar.visible{display:flex}
+.op-sel-bar-actions{display:flex;gap:6px;margin-left:auto}
+.op-sel-btn{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer;font-weight:500}
+.op-sel-btn:hover{background:var(--accent);color:#fff}
 
 /* 드롭존 (드래그 시 상단에 나타남) */
 .drop-zones{display:none;position:sticky;top:56px;z-index:100;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}
@@ -403,6 +411,16 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <button class="tab" onclick="switchTab('neg')">🔧 개선 전체</button>
         <button class="tab" onclick="switchTab('kw')">🔑 키워드</button>
         <button class="tab" onclick="switchTab('edit')">✏️ 분류 편집</button>
+      </div>
+
+      <!-- 선택 현황 바 -->
+      <div class="op-sel-bar" id="selBar">
+        <span id="selBarText">0개 선택됨</span>
+        <div class="op-sel-bar-actions">
+          <button class="op-sel-btn" onclick="selectAll()">전체 선택</button>
+          <button class="op-sel-btn" onclick="clearSelection()">선택 해제</button>
+          <button class="op-sel-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)" onclick="openDashboard()">🖥️ 선택 의견으로 대시보드 열기</button>
+        </div>
       </div>
 
       <!-- 드래그 시 나타나는 드롭존 -->
@@ -579,6 +597,7 @@ function classify(text){
 
 let rawData=[];
 let records=[];
+let selectedIds=new Set(); // 대시보드에 포함할 의견 _id 집합
 let currentTab='pos';
 let currentView='all';
 let pieInst=null,barInst=null;
@@ -891,13 +910,13 @@ function renderHierarchical(){
         const posHtml=posRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
-            ${posRecs.map(r=>`<div class="op-item pos" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">${r.text}</div>`).join('')}
+            ${posRecs.map(r=>`<div class="op-item pos ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="e=>e.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
           </div>`:'';
 
         const negHtml=negRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
-            ${negRecs.map(r=>`<div class="op-item neg" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">${r.text}</div>`).join('')}
+            ${negRecs.map(r=>`<div class="op-item neg ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="e=>e.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
           </div>`:'';
 
         // 통합된 분반 목록 표시 (예: A반, B반)
@@ -961,13 +980,16 @@ function renderFlatLists(){
   const renderFlat=(items,lbl)=>{
     if(!items.length)return'<div class="op-empty">해당 의견이 없습니다.</div>';
     return items.map(r=>{
-      return `<div class="op-item ${lbl}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">
-        <div class="op-meta">
-          ${r.course?`<span class="badge badge-course">${r.course}</span>`:''}
-          ${r.subject?`<span class="badge badge-subject">${r.subject}</span>`:''}
-          ${r.inst?`<span class="badge badge-inst">${r.inst}</span>`:''}
+      return `<div class="op-item ${lbl} ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">
+        <input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="e=>e.stopPropagation()">
+        <div class="op-item-body">
+          <div class="op-meta">
+            ${r.course?`<span class="badge badge-course">${r.course}</span>`:''}
+            ${r.subject?`<span class="badge badge-subject">${r.subject}</span>`:''}
+            ${r.inst?`<span class="badge badge-inst">${r.inst}</span>`:''}
+          </div>
+          ${r.text}
         </div>
-        ${r.text}
       </div>`;
     }).join('');
   };
@@ -1114,6 +1136,43 @@ let itemDragId=null;
 
 function itemDragInit(){
   // 드래그 시작 준비 — 드롭존 표시는 dragstart에서
+}
+
+// ── 의견 선택 관리 (대시보드용)
+function toggleSelect(id, checked){
+  if(checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  updateSelBar();
+  // 선택 상태 시각적 반영
+  document.querySelectorAll(`.op-item[data-id="${id}"]`).forEach(el=>{
+    el.classList.toggle('selected', checked);
+  });
+}
+
+function updateSelBar(){
+  const bar=document.getElementById('selBar');
+  const cnt=selectedIds.size;
+  if(cnt>0){
+    bar.classList.add('visible');
+    document.getElementById('selBarText').textContent=`${cnt}개 선택됨 — 대시보드에 선택한 의견만 표시됩니다`;
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function selectAll(){
+  records.forEach(r=>selectedIds.add(r._id));
+  updateSelBar();
+  // 현재 탭 다시 렌더링해서 체크박스 상태 반영
+  if(currentTab==='hier') renderHierarchical();
+  else if(currentTab==='pos'||currentTab==='neg') renderFlatLists();
+}
+
+function clearSelection(){
+  selectedIds.clear();
+  updateSelBar();
+  if(currentTab==='hier') renderHierarchical();
+  else if(currentTab==='pos'||currentTab==='neg') renderFlatLists();
 }
 
 function onItemDragStart(e){
@@ -1300,24 +1359,30 @@ function topWordsFor(texts,n=8){
 }
 
 function openDashboard(){
-  if(!records.length)return;
+  if(!dashRecords.length)return;
 
   // 기존 차트 정리
   dashCharts.forEach(c=>c.destroy());
   dashCharts=[];
 
-  const total=records.length;
-  const pos=records.filter(r=>r.label==='pos');
-  const neg=records.filter(r=>r.label==='neg');
-  const neu=records.filter(r=>r.label==='neu');
+  // 선택된 의견만 사용 (선택 없으면 전체)
+  const dashRecords = selectedIds.size > 0
+    ? dashRecords.filter(r=>selectedIds.has(r._id))
+    : records;
+
+  const total=dashRecords.length;
+  const pos=dashRecords.filter(r=>r.label==='pos');
+  const neg=dashRecords.filter(r=>r.label==='neg');
+  const neu=dashRecords.filter(r=>r.label==='neu');
 
   const courseNameEl=document.getElementById('courseName');
   const courseName=courseNameEl?courseNameEl.value.trim():'';
   const today=new Date();
   const dateStr=`${today.getFullYear()}. ${today.getMonth()+1}. ${today.getDate()}.`;
+  const selNote = selectedIds.size > 0 ? ` (선택 의견 ${selectedIds.size}건)` : '';
 
-  const courses=[...new Set(records.map(r=>r.course||'(과정 미지정)'))]
-    .sort((a,b)=>records.filter(r=>(r.course||'(과정 미지정)')===b).length-records.filter(r=>(r.course||'(과정 미지정)')===a).length);
+  const courses=[...new Set(dashRecords.map(r=>r.course||'(과정 미지정)'))]
+    .sort((a,b)=>dashRecords.filter(r=>(r.course||'(과정 미지정)')===b).length-dashRecords.filter(r=>(r.course||'(과정 미지정)')===a).length);
 
   let html='';
 
@@ -1328,7 +1393,7 @@ function openDashboard(){
         <div class="dash-masthead-left">
           <div class="dash-org">국가인재원 · 교육평가 지원 도구</div>
           <div class="dash-title">${courseName||'주관식 의견 분석'} 결과 대시보드</div>
-          <div class="dash-meta">분석 대상 ${courses.length}개 과정 · 총 ${total.toLocaleString()}건</div>
+          <div class="dash-meta">분석 대상 ${courses.length}개 과정 · 총 ${total.toLocaleString()}건${selNote}</div>
         </div>
         <div class="dash-date">작성일<br><strong style="color:var(--text);font-size:14px">${dateStr}</strong></div>
       </div>
@@ -1362,7 +1427,7 @@ function openDashboard(){
           <thead><tr><th>과정명</th><th class="num">전체</th><th class="num">긍정</th><th class="num">개선필요</th><th class="num">긍정률</th></tr></thead>
           <tbody>
             ${courses.map(c=>{
-              const recs=records.filter(r=>(r.course||'(과정 미지정)')===c);
+              const recs=dashRecords.filter(r=>(r.course||'(과정 미지정)')===c);
               const cp=recs.filter(r=>r.label==='pos').length;
               const cn=recs.filter(r=>r.label==='neg').length;
               const rate=recs.length?Math.round(cp/recs.length*100):0;
@@ -1377,7 +1442,7 @@ function openDashboard(){
 
   // ───── 과정별 상세 페이지 ─────
   courses.forEach(course=>{
-    const courseRecs=records.filter(r=>(r.course||'(과정 미지정)')===course);
+    const courseRecs=dashRecords.filter(r=>(r.course||'(과정 미지정)')===course);
     const cPos=courseRecs.filter(r=>r.label==='pos').length;
     const cNeg=courseRecs.filter(r=>r.label==='neg').length;
     const cNeu=courseRecs.filter(r=>r.label==='neu').length;
@@ -1480,8 +1545,8 @@ function openDashboard(){
         data:{
           labels:topC.map(x=>x.length>12?x.slice(0,12)+'…':x),
           datasets:[
-            {label:'긍정',data:topC.map(x=>records.filter(r=>r.course===x&&r.label==='pos').length),backgroundColor:'#0D9467'},
-            {label:'개선필요',data:topC.map(x=>records.filter(r=>r.course===x&&r.label==='neg').length),backgroundColor:'#DC2626'},
+            {label:'긍정',data:topC.map(x=>dashRecords.filter(r=>r.course===x&&r.label==='pos').length),backgroundColor:'#0D9467'},
+            {label:'개선필요',data:topC.map(x=>dashRecords.filter(r=>r.course===x&&r.label==='neg').length),backgroundColor:'#DC2626'},
           ]
         },
         options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:8}}},scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,ticks:{font:{size:10}}}}}
@@ -1516,9 +1581,10 @@ function printDashboard(){
 }
 
 function resetAll(){
-  rawData=[];records=[];
+  rawData=[];records=[];selectedIds=new Set();
   document.getElementById('filterCard').classList.add('hidden');
   document.getElementById('resultSec').classList.add('hidden');
+  document.getElementById('selBar').classList.remove('visible');
   document.getElementById('fi').value='';
   if(pieInst){pieInst.destroy();pieInst=null;}
   if(barInst){barInst.destroy();barInst=null;}

@@ -273,9 +273,18 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .dash-subj-stat{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
 .dash-inst-block{background:var(--bg);border-radius:10px;padding:12px 16px;margin-bottom:8px;break-inside:avoid;page-break-inside:avoid}
 .dash-inst-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px}
-.dash-op-row{font-size:12px;line-height:1.6;padding:6px 10px;border-radius:6px;margin-bottom:4px;border-left:3px solid}
+.dash-op-row{font-size:12px;line-height:1.6;padding:6px 10px;border-radius:6px;margin-bottom:4px;border-left:3px solid;display:flex;align-items:flex-start;gap:8px}
 .dash-op-row.pos{background:var(--pos-bg);border-color:var(--pos)}
 .dash-op-row.neg{background:var(--neg-bg);border-color:var(--neg)}
+.dash-op-row-text{flex:1}
+.op-change-btn{flex-shrink:0;font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid;cursor:pointer;background:var(--surface);white-space:nowrap;transition:.12s;opacity:.6}
+.op-change-btn:hover{opacity:1}
+.op-item{padding:11px 14px;border-radius:var(--rs);margin-bottom:6px;font-size:13px;line-height:1.7;border-left:3px solid transparent;display:flex;align-items:flex-start;gap:10px}
+.op-item.pos{background:var(--pos-bg);border-left-color:var(--pos)}
+.op-item.neg{background:var(--neg-bg);border-left-color:var(--neg)}
+.op-item.neu{background:var(--neu-bg);border-left-color:var(--neu)}
+.op-item-text{flex:1}
+.op-item-btns{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 
 .dash-footer{margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:10px;color:var(--faint);text-align:center}
 
@@ -849,13 +858,25 @@ function renderHierarchical(){
         const posHtml=posRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
-            ${posRecs.map(r=>`<div class="op-item pos">${r.text}</div>`).join('')}
+            ${posRecs.map(r=>{
+              const idx=records.indexOf(r);
+              return `<div class="op-item pos">
+                <span class="op-item-text">${r.text}</span>
+                <span class="op-item-btns">${labelBtns(idx,'pos')}</span>
+              </div>`;
+            }).join('')}
           </div>`:'';
 
         const negHtml=negRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
-            ${negRecs.map(r=>`<div class="op-item neg">${r.text}</div>`).join('')}
+            ${negRecs.map(r=>{
+              const idx=records.indexOf(r);
+              return `<div class="op-item neg">
+                <span class="op-item-text">${r.text}</span>
+                <span class="op-item-btns">${labelBtns(idx,'neg')}</span>
+              </div>`;
+            }).join('')}
           </div>`:'';
 
         // 통합된 분반 목록 표시 (예: A반, B반)
@@ -918,15 +939,20 @@ function renderFlatLists(){
 
   const renderFlat=(items,lbl)=>{
     if(!items.length)return'<div class="op-empty">해당 의견이 없습니다.</div>';
-    return items.map(r=>`
-      <div class="op-item ${lbl}">
-        <div class="op-meta">
-          ${r.course?`<span class="badge badge-course">${r.course}</span>`:''}
-          ${r.subject?`<span class="badge badge-subject">${r.subject}</span>`:''}
-          ${r.inst?`<span class="badge badge-inst">${r.inst}</span>`:''}
-        </div>
-        ${r.text}
-      </div>`).join('');
+    return items.map(r=>{
+      const idx=records.indexOf(r);
+      return `<div class="op-item ${lbl}">
+        <span class="op-item-text">
+          <div class="op-meta">
+            ${r.course?`<span class="badge badge-course">${r.course}</span>`:''}
+            ${r.subject?`<span class="badge badge-subject">${r.subject}</span>`:''}
+            ${r.inst?`<span class="badge badge-inst">${r.inst}</span>`:''}
+          </div>
+          ${r.text}
+        </span>
+        <span class="op-item-btns">${labelBtns(idx,lbl)}</span>
+      </div>`;
+    }).join('');
   };
 
   document.getElementById('posList').innerHTML=renderFlat(pos,'pos');
@@ -1044,6 +1070,37 @@ function onDrop(e,newLabel){
   if(document.getElementById('dashOverlay').classList.contains('open')){
     refreshDashboard();
   }
+}
+
+// 의견 분류 즉시 변경 — 모든 뷰에서 공통 사용
+function changeLabel(idx, newLabel){
+  if(records[idx].label===newLabel) return;
+  records[idx].label=newLabel;
+
+  // 현재 보이는 탭 갱신
+  if(currentTab==='hier') renderHierarchical();
+  else if(currentTab==='pos'||currentTab==='neg') renderFlatLists();
+  else if(currentTab==='edit') renderEditBoard();
+
+  // 요약 통계 갱신
+  updateSummaryStats();
+
+  // 대시보드 열려있으면 갱신
+  if(document.getElementById('dashOverlay').classList.contains('open')){
+    refreshDashboard();
+  }
+}
+
+// 의견 카드에 분류 변경 버튼 HTML 생성
+function labelBtns(idx, currentLabel){
+  const opts=[
+    {label:'pos', text:'😊 긍정'},
+    {label:'neg', text:'🔧 개선'},
+    {label:'neu', text:'😐 중립'},
+  ];
+  return opts.filter(o=>o.label!==currentLabel).map(o=>
+    `<button class="op-change-btn" onclick="changeLabel(${idx},'${o.label}')">${o.text}</button>`
+  ).join('');
 }
 
 function updateSummaryStats(){
@@ -1303,8 +1360,14 @@ function openDashboard(){
         instHtml+=`
           <div class="dash-inst-block">
             <div class="dash-inst-name">👨‍🏫 ${inst}${sectionTag}</div>
-            ${iPos.map(r=>`<div class="dash-op-row pos">😊 ${r.text}</div>`).join('')}
-            ${iNeg.map(r=>`<div class="dash-op-row neg">🔧 ${r.text}</div>`).join('')}
+            ${iPos.map(r=>{
+              const idx=records.indexOf(r);
+              return `<div class="dash-op-row pos"><span class="dash-op-row-text">😊 ${r.text}</span><button class="op-change-btn" style="border-color:var(--neg);color:var(--neg)" onclick="changeLabel(${idx},'neg')">🔧 개선으로</button></div>`;
+            }).join('')}
+            ${iNeg.map(r=>{
+              const idx=records.indexOf(r);
+              return `<div class="dash-op-row neg"><span class="dash-op-row-text">🔧 ${r.text}</span><button class="op-change-btn" style="border-color:var(--pos);color:var(--pos)" onclick="changeLabel(${idx},'pos')">😊 긍정으로</button></div>`;
+            }).join('')}
           </div>`;
       });
 

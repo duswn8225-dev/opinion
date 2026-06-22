@@ -970,6 +970,8 @@ function renderHierarchical(){
   });
 
   document.getElementById('hierList').innerHTML=courseHtml||'<div class="op-empty">분석된 의견이 없습니다.</div>';
+  // 펼쳐진 상태 복원
+  restoreHierState();
 }
 
 // ── 전체 목록 (긍정/개선 탭)
@@ -1003,6 +1005,54 @@ function toggleHier(head){
   body.classList.toggle('open');
   const cnt=head.querySelector('span:last-child');
   if(cnt)cnt.innerHTML=cnt.innerHTML.includes('▾')?cnt.innerHTML.replace('▾','▴'):cnt.innerHTML.replace('▴','▾');
+  // 펼침 상태 저장
+  saveHierState();
+}
+
+// 펼쳐진 섹션 상태 저장/복원
+let hierOpenState={courses:new Set(),subjects:new Set(),insts:new Set()};
+
+function saveHierState(){
+  hierOpenState={courses:new Set(),subjects:new Set(),insts:new Set()};
+  document.querySelectorAll('.course-body.open').forEach(el=>{
+    const title=el.previousElementSibling?.querySelector('.course-title')?.textContent?.trim();
+    if(title) hierOpenState.courses.add(title);
+  });
+  document.querySelectorAll('.subj-body.open').forEach(el=>{
+    const title=el.previousElementSibling?.querySelector('.subj-title')?.childNodes[0]?.textContent?.trim();
+    if(title) hierOpenState.subjects.add(title);
+  });
+  document.querySelectorAll('.inst-body.open').forEach(el=>{
+    const title=el.previousElementSibling?.querySelector('.inst-title')?.childNodes[0]?.textContent?.trim();
+    if(title) hierOpenState.insts.add(title);
+  });
+}
+
+function restoreHierState(){
+  document.querySelectorAll('.course-body').forEach(el=>{
+    const title=el.previousElementSibling?.querySelector('.course-title')?.textContent?.trim();
+    if(title&&hierOpenState.courses.has(title)){
+      el.classList.add('open');
+      const cnt=el.previousElementSibling?.querySelector('span:last-child');
+      if(cnt) cnt.innerHTML=cnt.innerHTML.replace('▾','▴');
+    }
+  });
+  document.querySelectorAll('.subj-body').forEach(el=>{
+    const title=el.previousElementSibling?.querySelector('.subj-title')?.childNodes[0]?.textContent?.trim();
+    if(title&&hierOpenState.subjects.has(title)){
+      el.classList.add('open');
+      const cnt=el.previousElementSibling?.querySelector('span:last-child');
+      if(cnt) cnt.innerHTML=cnt.innerHTML.replace('▾','▴');
+    }
+  });
+  document.querySelectorAll('.inst-body').forEach(el=>{
+    const title=el.previousElementSibling?.querySelector('.inst-title')?.childNodes[0]?.textContent?.trim();
+    if(title&&hierOpenState.insts.has(title)){
+      el.classList.add('open');
+      const cnt=el.previousElementSibling?.querySelector('span:last-child');
+      if(cnt) cnt.innerHTML=cnt.innerHTML.replace('▾','▴');
+    }
+  });
 }
 
 function toggleGroup(head){

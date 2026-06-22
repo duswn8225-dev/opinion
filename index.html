@@ -1364,7 +1364,9 @@ function dlReportTemplate(){
         // 긍정 + 개선 의견을 함께 묶어서 "교육생 주요의견" 칸에 줄바꿈으로 정리
         const posOps=scoped.filter(r=>r.label==='pos').map(r=>'(긍정) '+r.text);
         const negOps=scoped.filter(r=>r.label==='neg').map(r=>'(개선) '+r.text);
-        const opinionText=[...posOps.slice(0,3),...negOps.slice(0,3)].join('\n');
+        // 선택된 의견이 있으면 전체, 없으면 최대 3개씩
+        const limit = selectedIds.size > 0 ? Infinity : 3;
+        const opinionText=[...posOps.slice(0,limit),...negOps.slice(0,limit)].join('\n');
 
         // 분반 정보 — 같은 강사가 여러 분반에 출강한 경우 참고용으로 표기
         const sections=[...new Set(scoped.map(r=>r.section).filter(Boolean))].sort();
@@ -1513,8 +1515,10 @@ function openDashboard(){
       let instHtml='';
       insts.forEach(inst=>{
         const instRecs=subjRecs.filter(r=>(r.inst||'(강사 미지정)')===inst);
-        const iPos=instRecs.filter(r=>r.label==='pos').slice(0,3);
-        const iNeg=instRecs.filter(r=>r.label==='neg').slice(0,3);
+        // 선택된 의견이 있으면 전체 표시, 없으면 최대 3개
+        const limit = selectedIds.size > 0 ? Infinity : 3;
+        const iPos=instRecs.filter(r=>r.label==='pos').slice(0,limit);
+        const iNeg=instRecs.filter(r=>r.label==='neg').slice(0,limit);
         if(!iPos.length&&!iNeg.length)return;
 
         const sections=[...new Set(instRecs.map(r=>r.section).filter(Boolean))].sort();

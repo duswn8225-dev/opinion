@@ -174,6 +174,25 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 
 /* DL */
 .dl-row{display:flex;gap:8px}
+
+/* ── 분류 편집 보드 */
+.edit-guide{font-size:12px;color:var(--muted);background:var(--accent-bg);border-radius:var(--rs);padding:8px 14px;margin-bottom:14px;border:1px solid #C7D2FE}
+.edit-board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
+.edit-col{border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.edit-col-head{padding:10px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.edit-col-head.pos{background:var(--pos-bg);color:var(--pos)}
+.edit-col-head.neg{background:var(--neg-bg);color:var(--neg)}
+.edit-col-head.neu{background:var(--neu-bg);color:var(--neu)}
+.edit-col-cnt{font-size:11px;padding:1px 8px;border-radius:20px;background:rgba(0,0,0,.08);font-weight:700}
+.edit-col-body{min-height:120px;padding:8px;background:var(--bg);display:flex;flex-direction:column;gap:6px;transition:background .15s}
+.edit-col-body.drag-over{background:#EEF2FF;outline:2px dashed var(--accent)}
+.edit-card{background:var(--surface);border-radius:var(--rs);padding:9px 12px;font-size:12px;line-height:1.6;cursor:grab;border:1px solid var(--border);transition:box-shadow .15s;border-left:3px solid transparent;user-select:none}
+.edit-card:active{cursor:grabbing;box-shadow:0 4px 14px rgba(0,0,0,.15);opacity:.85}
+.edit-card.pos{border-left-color:var(--pos)}
+.edit-card.neg{border-left-color:var(--neg)}
+.edit-card.neu{border-left-color:var(--neu)}
+.edit-card.dragging{opacity:.4}
+.edit-card-meta{font-size:10px;color:var(--faint);margin-bottom:4px}
 .err{font-size:13px;color:var(--neg);background:var(--neg-bg);border:1px solid var(--neg-bd);padding:9px 13px;border-radius:var(--rs);margin-top:10px;display:none}
 .hidden{display:none!important}
 .info-bar{font-size:13px;color:var(--accent);background:var(--accent-bg);border:1px solid #C7D2FE;padding:8px 14px;border-radius:var(--rs);margin-top:10px}
@@ -367,6 +386,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <button class="tab" onclick="switchTab('pos')">😊 긍정 전체</button>
         <button class="tab" onclick="switchTab('neg')">🔧 개선 전체</button>
         <button class="tab" onclick="switchTab('kw')">🔑 키워드</button>
+        <button class="tab" onclick="switchTab('edit')">✏️ 분류 편집</button>
       </div>
 
       <div class="tab-panel active" id="tab-hier"><div id="hierList"></div></div>
@@ -375,6 +395,23 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
       <div class="tab-panel" id="tab-kw">
         <div class="kw-group"><div class="kw-group-title" style="color:var(--pos)">긍정 의견에서 자주 나온 단어</div><div class="tags" id="posKwTags"></div></div>
         <div class="kw-group"><div class="kw-group-title" style="color:var(--neg)">개선 의견에서 자주 나온 단어</div><div class="tags" id="negKwTags"></div></div>
+      </div>
+      <div class="tab-panel" id="tab-edit">
+        <div class="edit-guide">카드를 드래그해서 다른 열로 옮기면 분류가 바뀝니다. 수정 후 Excel로 내보내면 반영돼요.</div>
+        <div class="edit-board" id="editBoard">
+          <div class="edit-col" id="edit-pos" ondragover="onDragOver(event)" ondrop="onDrop(event,'pos')">
+            <div class="edit-col-head pos">😊 긍정 <span class="edit-col-cnt" id="edit-pos-cnt">0</span></div>
+            <div class="edit-col-body" id="edit-pos-body"></div>
+          </div>
+          <div class="edit-col" id="edit-neg" ondragover="onDragOver(event)" ondrop="onDrop(event,'neg')">
+            <div class="edit-col-head neg">🔧 개선필요 <span class="edit-col-cnt" id="edit-neg-cnt">0</span></div>
+            <div class="edit-col-body" id="edit-neg-body"></div>
+          </div>
+          <div class="edit-col" id="edit-neu" ondragover="onDragOver(event)" ondrop="onDrop(event,'neu')">
+            <div class="edit-col-head neu">😐 중립 <span class="edit-col-cnt" id="edit-neu-cnt">0</span></div>
+            <div class="edit-col-body" id="edit-neu-body"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -407,10 +444,45 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 </div>
 
 <script>
-// ── 키워드
-const POS_KW=['유익','알차','체계적','실용적','충실','풍부','다양','균형','전문적','열정','친절','탁월','우수','도움','만족','훌륭','흥미','재미있','최고','추천','효과적','현업','실무','이해하기 쉬','잘 구성','잘 운영','사례 중심','현장 사례','좋았','명강','역량','성과','발전','명쾌','생동감','실제적'];
-const NEG_KW=['부족','미흡','아쉬','어렵','불편','촉박','너무 빠르','너무 짧','지루','반복적','개선','보완','추가','늘려','확대','더 필요','더 많이','설명이 부족','자료가 미흡','준비가 미흡','이론 위주','피상적','어수선','미비','실습 부족','실습이 없','시간 부족','시간이 짧','시간 배분','내용 보강','이해하기 어렵','속도가 빠르','진도가 빠르','현업과 거리','집합교육'];
-const NEG_REQ=[/보강/,/확대/,/개선/,/추가/,/늘려/,/필요/,/요청/,/바랍니다/,/해주세요/,/해주시/,/부탁/,/하면 좋겠/,/하면 어떨까/,/했으면/];
+// ── 키워드 사전 (문맥 인식 강화 버전)
+const POS_KW=[
+  '유익','알차','체계적','실용적','충실','풍부','다양','균형','전문적','열정','친절','탁월','우수',
+  '만족','훌륭','흥미','재미있','최고','추천','효과적','현업','실무','명강','역량','성과','발전',
+  '명쾌','생동감','실제적','좋았','이해하기 쉬','잘 구성','잘 운영','사례 중심','현장 사례',
+  '적절했','적절하게','적절한 것 같','충분했','충분하게','도움이 됐','도움이 되었','도움이 많이',
+  '잘 이해','쉽게 이해','흥미로웠','재미있었','유익했','알찼','좋은 강의','좋은 수업',
+  '잘 전달','내용이 좋','강의가 좋','수업이 좋','도움이 될 것 같','유용할 것 같',
+];
+
+// 명확한 부정·개선 키워드 (단순 포함이 아닌 완성된 표현)
+const NEG_KW=[
+  '부족했','부족합니다','부족한 것 같','부족한 점','부족해 보',
+  '미흡했','미흡합니다','미흡한','아쉬웠','아쉽습니다','아쉬운','아쉬운 점',
+  '이해하기 어렵','너무 어렵','어려웠습니다','어렵습니다',
+  '불편했','불편합니다','불편한',
+  '촉박했','촉박합니다','시간이 부족','시간 부족','시간이 짧았','너무 짧았',
+  '너무 빠르','진도가 빠르','속도가 빠르','속도가 너무',
+  '지루했','지루합니다','지루한','지루하게',
+  '반복적','중복된','중복이 많',
+  '실습 부족','실습이 없','실습이 부족',
+  '준비가 미흡','자료가 미흡','자료가 부족','설명이 부족',
+  '이론 위주','이론만 있','현업과 거리','현장과 거리',
+  '피상적','어수선','미비했','미비합니다',
+];
+
+// 요청형 패턴 — 단독일 때만 개선으로 분류 (긍정 키워드 있으면 복합→긍정)
+const NEG_REQ=[
+  /해주세요\s*[.!]*$/,/해주시면\s+좋겠/,/해주셨으면/,/해주시길/,
+  /했으면\s+좋겠/,/하면\s+어떨까/,/이\s+필요합니다/,/이\s+필요해\s+보/,
+  /개선이\s+필요/,/보완이\s+필요/,/늘려\s+주/,/추가해\s+주/,/보강해\s+주/,
+];
+
+// 긍정 제안 패턴 — 요청형이지만 긍정 맥락
+const POS_REQ=[
+  /더\s+많이\s+해주/,/자주\s+개설/,/계속\s+진행/,/다음에도/,/또\s+듣고\s+싶/,
+  /다시\s+듣고\s+싶/,/추천하고\s+싶/,/추천합니다/,/이런\s+강의\s+더/,
+  /이런\s+수업\s+더/,/이런\s+과정\s+더/,
+];
 const NOISE=new Set(['없음','없습니다','없어요','없다','없어','해당없음','해당사항없음','의견없음','이상없음','감사합니다','수고하셨습니다','좋습니다','좋아요','만족합니다','훌륭함','적절함','좋음','.','..','...','ㆍ','-','~','없','N/A','nan','NaN']);
 const NOISE_S=['특별히 없','해당 없','의견 없','이상 없','딱히','특이사항'];
 
@@ -453,12 +525,24 @@ function parseInstructor(raw){
 }
 
 function classify(text){
-  const isReq=NEG_REQ.some(p=>p.test(text));
-  const pos=POS_KW.filter(kw=>text.includes(kw)).length;
-  const neg=NEG_KW.filter(kw=>text.includes(kw)).length;
-  if(neg>0||(isReq&&pos===0))return'neg';
-  if(pos>0)return'pos';
-  return'neu';
+  const posScore = POS_KW.filter(kw=>text.includes(kw)).length;
+  const negScore = NEG_KW.filter(kw=>text.includes(kw)).length;
+  const isNegReq = NEG_REQ.some(p=>p.test(text));
+  const isPosReq = POS_REQ.some(p=>p.test(text));
+  const adjPos = posScore + (isPosReq ? 1 : 0);
+
+  // 명확한 부정 키워드가 있을 때
+  if(negScore > 0){
+    if(adjPos > negScore) return 'pos'; // 긍정이 더 강하면 긍정
+    return 'neg';
+  }
+  // 부정 키워드 없이 요청형만 있을 때
+  if(isNegReq && !isPosReq){
+    if(adjPos > 0) return 'pos'; // "유익했는데 늘려주세요" → 긍정
+    return 'neg';
+  }
+  if(adjPos > 0) return 'pos';
+  return 'neu';
 }
 
 let rawData=[];
@@ -881,10 +965,98 @@ function renderKeywords(){
 function switchTab(name){
   currentTab=name;
   document.querySelectorAll('.tab').forEach((t,i)=>{
-    t.classList.toggle('active',['hier','pos','neg','kw'][i]===name);
+    t.classList.toggle('active',['hier','pos','neg','kw','edit'][i]===name);
   });
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
+  if(name==='edit') renderEditBoard();
+}
+
+// ════════════════════════════════════
+// 드래그앤드롭 분류 편집
+// ════════════════════════════════════
+let dragSrcIdx=null;
+
+function renderEditBoard(){
+  ['pos','neg','neu'].forEach(lbl=>{
+    const body=document.getElementById(`edit-${lbl}-body`);
+    const items=records.map((r,i)=>({...r,_idx:i})).filter(r=>r.label===lbl);
+    body.innerHTML='';
+    items.forEach(r=>{
+      const card=document.createElement('div');
+      card.className=`edit-card ${lbl}`;
+      card.draggable=true;
+      card.dataset.idx=r._idx;
+      card.innerHTML=`
+        <div class="edit-card-meta">${[r.subject,r.inst].filter(Boolean).join(' · ')||'(미지정)'}</div>
+        ${r.text}`;
+      card.addEventListener('dragstart',onDragStart);
+      card.addEventListener('dragend',onDragEnd);
+      body.appendChild(card);
+    });
+    updateEditCounts();
+  });
+}
+
+function updateEditCounts(){
+  ['pos','neg','neu'].forEach(lbl=>{
+    const cnt=records.filter(r=>r.label===lbl).length;
+    document.getElementById(`edit-${lbl}-cnt`).textContent=cnt;
+  });
+}
+
+function onDragStart(e){
+  dragSrcIdx=parseInt(e.currentTarget.dataset.idx);
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+}
+
+function onDragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.edit-col-body').forEach(b=>b.classList.remove('drag-over'));
+}
+
+function onDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  // 가장 가까운 edit-col-body에 drag-over 표시
+  const body=e.currentTarget.querySelector('.edit-col-body');
+  document.querySelectorAll('.edit-col-body').forEach(b=>b.classList.remove('drag-over'));
+  if(body) body.classList.add('drag-over');
+}
+
+function onDrop(e,newLabel){
+  e.preventDefault();
+  document.querySelectorAll('.edit-col-body').forEach(b=>b.classList.remove('drag-over'));
+  if(dragSrcIdx===null) return;
+  const oldLabel=records[dragSrcIdx].label;
+  if(oldLabel===newLabel){dragSrcIdx=null;return;}
+
+  // 분류 변경 — records 원본을 직접 수정
+  records[dragSrcIdx].label=newLabel;
+  dragSrcIdx=null;
+
+  // 편집 보드 + 요약 통계 갱신
+  renderEditBoard();
+  updateSummaryStats();
+
+  // 대시보드가 열려있으면 실시간 갱신
+  if(document.getElementById('dashOverlay').classList.contains('open')){
+    refreshDashboard();
+  }
+}
+
+function updateSummaryStats(){
+  const total=records.length;
+  const pos=records.filter(r=>r.label==='pos').length;
+  const neg=records.filter(r=>r.label==='neg').length;
+  const neu=records.filter(r=>r.label==='neu').length;
+  document.getElementById('posN').textContent=pos;
+  document.getElementById('negN').textContent=neg;
+  document.getElementById('neuN').textContent=neu;
+  document.getElementById('posPct').textContent=total?Math.round(pos/total*100)+'%':'0%';
+  document.getElementById('negPct').textContent=total?Math.round(neg/total*100)+'%':'0%';
+  document.getElementById('neuPct').textContent=total?Math.round(neu/total*100)+'%':'0%';
 }
 
 function dlCSV(){
@@ -1177,8 +1349,12 @@ function openDashboard(){
   });
 
   document.getElementById('dashContent').innerHTML=html;
-  document.getElementById('dashOverlay').classList.add('open');
-  document.body.style.overflow='hidden';
+
+  // 처음 열 때만 overlay 열기 (갱신 시에는 이미 열려있음)
+  if(!document.getElementById('dashOverlay').classList.contains('open')){
+    document.getElementById('dashOverlay').classList.add('open');
+    document.body.style.overflow='hidden';
+  }
 
   // 차트는 DOM 삽입 후 다음 프레임에 그려야 canvas 크기를 잡을 수 있음
   requestAnimationFrame(()=>{
@@ -1207,6 +1383,16 @@ function openDashboard(){
       });
       dashCharts.push(c);
     }
+  });
+}
+
+// 대시보드가 열린 상태에서 분류 수정 시 실시간 갱신
+function refreshDashboard(){
+  if(!document.getElementById('dashOverlay').classList.contains('open')) return;
+  const prevScroll=document.getElementById('dashOverlay').scrollTop;
+  openDashboard();
+  requestAnimationFrame(()=>{
+    document.getElementById('dashOverlay').scrollTop=prevScroll;
   });
 }
 

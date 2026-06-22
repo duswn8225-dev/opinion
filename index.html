@@ -417,8 +417,8 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
       <div class="op-sel-bar" id="selBar">
         <span id="selBarText">0개 선택됨</span>
         <div class="op-sel-bar-actions">
-          <button class="op-sel-btn" onclick="selectAll()">전체 선택</button>
-          <button class="op-sel-btn" onclick="clearSelection()">선택 해제</button>
+          <button class="op-sel-btn" onclick="selectAllOpinions()">전체 선택</button>
+          <button class="op-sel-btn" onclick="clearOpinionSelection()">선택 해제</button>
           <button class="op-sel-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)" onclick="openDashboard()">🖥️ 선택 의견으로 대시보드 열기</button>
         </div>
       </div>
@@ -910,13 +910,13 @@ function renderHierarchical(){
         const posHtml=posRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
-            ${posRecs.map(r=>`<div class="op-item pos ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="e=>e.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
+            ${posRecs.map(r=>`<div class="op-item pos ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
           </div>`:'';
 
         const negHtml=negRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
-            ${negRecs.map(r=>`<div class="op-item neg ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="e=>e.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
+            ${negRecs.map(r=>`<div class="op-item neg ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
           </div>`:'';
 
         // 통합된 분반 목록 표시 (예: A반, B반)
@@ -981,7 +981,7 @@ function renderFlatLists(){
     if(!items.length)return'<div class="op-empty">해당 의견이 없습니다.</div>';
     return items.map(r=>{
       return `<div class="op-item ${lbl} ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">
-        <input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="e=>e.stopPropagation()">
+        <input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()">
         <div class="op-item-body">
           <div class="op-meta">
             ${r.course?`<span class="badge badge-course">${r.course}</span>`:''}
@@ -1160,7 +1160,7 @@ function updateSelBar(){
   }
 }
 
-function selectAll(){
+function selectAllOpinions(){
   records.forEach(r=>selectedIds.add(r._id));
   updateSelBar();
   // 현재 탭 다시 렌더링해서 체크박스 상태 반영
@@ -1168,7 +1168,7 @@ function selectAll(){
   else if(currentTab==='pos'||currentTab==='neg') renderFlatLists();
 }
 
-function clearSelection(){
+function clearOpinionSelection(){
   selectedIds.clear();
   updateSelBar();
   if(currentTab==='hier') renderHierarchical();
@@ -1359,7 +1359,7 @@ function topWordsFor(texts,n=8){
 }
 
 function openDashboard(){
-  if(!dashRecords.length)return;
+  if(!records.length)return;
 
   // 기존 차트 정리
   dashCharts.forEach(c=>c.destroy());
@@ -1367,7 +1367,7 @@ function openDashboard(){
 
   // 선택된 의견만 사용 (선택 없으면 전체)
   const dashRecords = selectedIds.size > 0
-    ? dashRecords.filter(r=>selectedIds.has(r._id))
+    ? records.filter(r=>selectedIds.has(r._id))
     : records;
 
   const total=dashRecords.length;

@@ -277,14 +277,21 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
 .dash-op-row.pos{background:var(--pos-bg);border-color:var(--pos)}
 .dash-op-row.neg{background:var(--neg-bg);border-color:var(--neg)}
 .dash-op-row-text{flex:1}
-.op-change-btn{flex-shrink:0;font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid;cursor:pointer;background:var(--surface);white-space:nowrap;transition:.12s;opacity:.6}
-.op-change-btn:hover{opacity:1}
-.op-item{padding:11px 14px;border-radius:var(--rs);margin-bottom:6px;font-size:13px;line-height:1.7;border-left:3px solid transparent;display:flex;align-items:flex-start;gap:10px}
+.op-item{padding:11px 14px;border-radius:var(--rs);margin-bottom:6px;font-size:13px;line-height:1.7;border-left:3px solid transparent;cursor:grab;user-select:none;transition:box-shadow .15s}
+.op-item:active{cursor:grabbing;box-shadow:0 4px 14px rgba(0,0,0,.15);opacity:.85}
+.op-item.dragging{opacity:.4}
 .op-item.pos{background:var(--pos-bg);border-left-color:var(--pos)}
 .op-item.neg{background:var(--neg-bg);border-left-color:var(--neg)}
 .op-item.neu{background:var(--neu-bg);border-left-color:var(--neu)}
-.op-item-text{flex:1}
-.op-item-btns{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+
+/* 드롭존 (드래그 시 상단에 나타남) */
+.drop-zones{display:none;position:sticky;top:56px;z-index:100;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.drop-zones.visible{display:grid}
+.drop-zone{border-radius:var(--r);padding:14px;text-align:center;font-size:13px;font-weight:600;border:2px dashed;transition:.15s;min-height:56px;display:flex;align-items:center;justify-content:center}
+.drop-zone.pos{background:var(--pos-bg);border-color:var(--pos-bd);color:var(--pos)}
+.drop-zone.neg{background:var(--neg-bg);border-color:var(--neg-bd);color:var(--neg)}
+.drop-zone.neu{background:var(--neu-bg);border-color:var(--neu-bd);color:var(--neu)}
+.drop-zone.drag-over{filter:brightness(0.93);transform:scale(1.02)}
 
 .dash-footer{margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:10px;color:var(--faint);text-align:center}
 
@@ -396,6 +403,22 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
         <button class="tab" onclick="switchTab('neg')">🔧 개선 전체</button>
         <button class="tab" onclick="switchTab('kw')">🔑 키워드</button>
         <button class="tab" onclick="switchTab('edit')">✏️ 분류 편집</button>
+      </div>
+
+      <!-- 드래그 시 나타나는 드롭존 -->
+      <div class="drop-zones" id="dropZones">
+        <div class="drop-zone pos" id="dz-pos"
+          ondragover="onItemDragOver(event,'pos')"
+          ondragleave="onItemDragLeave(event)"
+          ondrop="onItemDrop(event,'pos')">😊 긍정으로 이동</div>
+        <div class="drop-zone neg" id="dz-neg"
+          ondragover="onItemDragOver(event,'neg')"
+          ondragleave="onItemDragLeave(event)"
+          ondrop="onItemDrop(event,'neg')">🔧 개선으로 이동</div>
+        <div class="drop-zone neu" id="dz-neu"
+          ondragover="onItemDragOver(event,'neu')"
+          ondragleave="onItemDragLeave(event)"
+          ondrop="onItemDrop(event,'neu')">😐 중립으로 이동</div>
       </div>
 
       <div class="tab-panel active" id="tab-hier"><div id="hierList"></div></div>
@@ -811,6 +834,15 @@ function renderResults(){
   renderFlatLists();
   renderKeywords();
 
+  // 탭 상태를 hier로 초기화 (재분석 시 이전 탭 상태가 남아있는 문제 방지)
+  currentTab='hier';
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',i===0);
+  });
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>{
+    p.classList.toggle('active',i===0);
+  });
+
   document.getElementById('resultSec').classList.remove('hidden');
   document.getElementById('resultSec').scrollIntoView({behavior:'smooth'});
 }
@@ -859,25 +891,13 @@ function renderHierarchical(){
         const posHtml=posRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
-            ${posRecs.map(r=>{
-              const idx=r._id;
-              return `<div class="op-item pos">
-                <span class="op-item-text">${r.text}</span>
-                <span class="op-item-btns">${labelBtns(idx,'pos')}</span>
-              </div>`;
-            }).join('')}
+            ${posRecs.map(r=>`<div class="op-item pos" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">${r.text}</div>`).join('')}
           </div>`:'';
 
         const negHtml=negRecs.length?`
           <div class="hier-section">
             <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
-            ${negRecs.map(r=>{
-              const idx=r._id;
-              return `<div class="op-item neg">
-                <span class="op-item-text">${r.text}</span>
-                <span class="op-item-btns">${labelBtns(idx,'neg')}</span>
-              </div>`;
-            }).join('')}
+            ${negRecs.map(r=>`<div class="op-item neg" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">${r.text}</div>`).join('')}
           </div>`:'';
 
         // 통합된 분반 목록 표시 (예: A반, B반)
@@ -941,17 +961,13 @@ function renderFlatLists(){
   const renderFlat=(items,lbl)=>{
     if(!items.length)return'<div class="op-empty">해당 의견이 없습니다.</div>';
     return items.map(r=>{
-      const idx=r._id;
-      return `<div class="op-item ${lbl}">
-        <span class="op-item-text">
-          <div class="op-meta">
-            ${r.course?`<span class="badge badge-course">${r.course}</span>`:''}
-            ${r.subject?`<span class="badge badge-subject">${r.subject}</span>`:''}
-            ${r.inst?`<span class="badge badge-inst">${r.inst}</span>`:''}
-          </div>
-          ${r.text}
-        </span>
-        <span class="op-item-btns">${labelBtns(idx,lbl)}</span>
+      return `<div class="op-item ${lbl}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">
+        <div class="op-meta">
+          ${r.course?`<span class="badge badge-course">${r.course}</span>`:''}
+          ${r.subject?`<span class="badge badge-subject">${r.subject}</span>`:''}
+          ${r.inst?`<span class="badge badge-inst">${r.inst}</span>`:''}
+        </div>
+        ${r.text}
       </div>`;
     }).join('');
   };
@@ -1078,7 +1094,7 @@ function changeLabel(id, newLabel){
   if(!rec||rec.label===newLabel) return;
   rec.label=newLabel;
 
-  // 현재 보이는 탭 갱신
+  // 현재 탭 다시 렌더링
   if(currentTab==='hier') renderHierarchical();
   else if(currentTab==='pos'||currentTab==='neg') renderFlatLists();
   else if(currentTab==='edit') renderEditBoard();
@@ -1093,15 +1109,46 @@ function changeLabel(id, newLabel){
 }
 
 // 의견 카드에 분류 변경 버튼 HTML 생성 — _id 사용
-function labelBtns(id, currentLabel){
-  const opts=[
-    {label:'pos', text:'😊 긍정'},
-    {label:'neg', text:'🔧 개선'},
-    {label:'neu', text:'😐 중립'},
-  ];
-  return opts.filter(o=>o.label!==currentLabel).map(o=>
-    `<button class="op-change-btn" onclick="changeLabel(${id},'${o.label}')">${o.text}</button>`
-  ).join('');
+// ── 의견 아이템 드래그앤드롭 (교과목·강사별 / 긍정·개선 전체 탭)
+let itemDragId=null;
+
+function itemDragInit(){
+  // 드래그 시작 준비 — 드롭존 표시는 dragstart에서
+}
+
+function onItemDragStart(e){
+  itemDragId=parseInt(e.currentTarget.dataset.id);
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  // 드롭존 표시
+  document.getElementById('dropZones').classList.add('visible');
+}
+
+function onItemDragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.getElementById('dropZones').classList.remove('visible');
+  document.querySelectorAll('.drop-zone').forEach(z=>z.classList.remove('drag-over'));
+  itemDragId=null;
+}
+
+function onItemDragOver(e, label){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.drop-zone').forEach(z=>z.classList.remove('drag-over'));
+  document.getElementById(`dz-${label}`).classList.add('drag-over');
+}
+
+function onItemDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onItemDrop(e, newLabel){
+  e.preventDefault();
+  document.querySelectorAll('.drop-zone').forEach(z=>z.classList.remove('drag-over'));
+  document.getElementById('dropZones').classList.remove('visible');
+  if(itemDragId===null) return;
+  changeLabel(itemDragId, newLabel);
+  itemDragId=null;
 }
 
 function updateSummaryStats(){
@@ -1361,14 +1408,8 @@ function openDashboard(){
         instHtml+=`
           <div class="dash-inst-block">
             <div class="dash-inst-name">👨‍🏫 ${inst}${sectionTag}</div>
-            ${iPos.map(r=>{
-              const idx=r._id;
-              return `<div class="dash-op-row pos"><span class="dash-op-row-text">😊 ${r.text}</span><button class="op-change-btn" style="border-color:var(--neg);color:var(--neg)" onclick="changeLabel(${idx},'neg')">🔧 개선으로</button></div>`;
-            }).join('')}
-            ${iNeg.map(r=>{
-              const idx=r._id;
-              return `<div class="dash-op-row neg"><span class="dash-op-row-text">🔧 ${r.text}</span><button class="op-change-btn" style="border-color:var(--pos);color:var(--pos)" onclick="changeLabel(${idx},'pos')">😊 긍정으로</button></div>`;
-            }).join('')}
+            ${iPos.map(r=>`<div class="dash-op-row pos"><span class="dash-op-row-text">😊 ${r.text}</span></div>`).join('')}
+            ${iNeg.map(r=>`<div class="dash-op-row neg"><span class="dash-op-row-text">🔧 ${r.text}</span></div>`).join('')}
           </div>`;
       });
 

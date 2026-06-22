@@ -742,12 +742,13 @@ function runAnalysis(){
     const parsed=parseInstructor(r['강사명']);
 
     records.push({
+      _id: records.length, // 고유 ID — indexOf 대신 이걸로 찾음
       text,
       label,
       course:String(r['설문제목']||'').trim(),
       subject:String(r['과목명']||'').trim(),
-      inst:parsed.name,      // 분반 제거된 순수 강사명 — 같은 강사는 분반 달라도 하나로 묶임
-      section:parsed.section, // 분반명 (참고용)
+      inst:parsed.name,
+      section:parsed.section,
       qtype,
     });
 
@@ -859,7 +860,7 @@ function renderHierarchical(){
           <div class="hier-section">
             <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
             ${posRecs.map(r=>{
-              const idx=records.indexOf(r);
+              const idx=r._id;
               return `<div class="op-item pos">
                 <span class="op-item-text">${r.text}</span>
                 <span class="op-item-btns">${labelBtns(idx,'pos')}</span>
@@ -871,7 +872,7 @@ function renderHierarchical(){
           <div class="hier-section">
             <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
             ${negRecs.map(r=>{
-              const idx=records.indexOf(r);
+              const idx=r._id;
               return `<div class="op-item neg">
                 <span class="op-item-text">${r.text}</span>
                 <span class="op-item-btns">${labelBtns(idx,'neg')}</span>
@@ -940,7 +941,7 @@ function renderFlatLists(){
   const renderFlat=(items,lbl)=>{
     if(!items.length)return'<div class="op-empty">해당 의견이 없습니다.</div>';
     return items.map(r=>{
-      const idx=records.indexOf(r);
+      const idx=r._id;
       return `<div class="op-item ${lbl}">
         <span class="op-item-text">
           <div class="op-meta">
@@ -1006,13 +1007,13 @@ let dragSrcIdx=null;
 function renderEditBoard(){
   ['pos','neg','neu'].forEach(lbl=>{
     const body=document.getElementById(`edit-${lbl}-body`);
-    const items=records.map((r,i)=>({...r,_idx:i})).filter(r=>r.label===lbl);
+    const items=records.filter(r=>r.label===lbl);
     body.innerHTML='';
     items.forEach(r=>{
       const card=document.createElement('div');
       card.className=`edit-card ${lbl}`;
       card.draggable=true;
-      card.dataset.idx=r._idx;
+      card.dataset.idx=r._id;  // _id 사용
       card.innerHTML=`
         <div class="edit-card-meta">${[r.subject,r.inst].filter(Boolean).join(' · ')||'(미지정)'}</div>
         ${r.text}`;
@@ -1055,27 +1056,27 @@ function onDrop(e,newLabel){
   e.preventDefault();
   document.querySelectorAll('.edit-col-body').forEach(b=>b.classList.remove('drag-over'));
   if(dragSrcIdx===null) return;
-  const oldLabel=records[dragSrcIdx].label;
-  if(oldLabel===newLabel){dragSrcIdx=null;return;}
 
-  // 분류 변경 — records 원본을 직접 수정
-  records[dragSrcIdx].label=newLabel;
+  // dragSrcIdx는 _id값 — find로 찾기
+  const rec=records.find(r=>r._id===dragSrcIdx);
+  if(!rec||rec.label===newLabel){dragSrcIdx=null;return;}
+
+  rec.label=newLabel;
   dragSrcIdx=null;
 
-  // 편집 보드 + 요약 통계 갱신
   renderEditBoard();
   updateSummaryStats();
 
-  // 대시보드가 열려있으면 실시간 갱신
   if(document.getElementById('dashOverlay').classList.contains('open')){
     refreshDashboard();
   }
 }
 
-// 의견 분류 즉시 변경 — 모든 뷰에서 공통 사용
-function changeLabel(idx, newLabel){
-  if(records[idx].label===newLabel) return;
-  records[idx].label=newLabel;
+// 의견 분류 즉시 변경 — _id 기반으로 records에서 찾아서 수정
+function changeLabel(id, newLabel){
+  const rec=records.find(r=>r._id===id);
+  if(!rec||rec.label===newLabel) return;
+  rec.label=newLabel;
 
   // 현재 보이는 탭 갱신
   if(currentTab==='hier') renderHierarchical();
@@ -1091,15 +1092,15 @@ function changeLabel(idx, newLabel){
   }
 }
 
-// 의견 카드에 분류 변경 버튼 HTML 생성
-function labelBtns(idx, currentLabel){
+// 의견 카드에 분류 변경 버튼 HTML 생성 — _id 사용
+function labelBtns(id, currentLabel){
   const opts=[
     {label:'pos', text:'😊 긍정'},
     {label:'neg', text:'🔧 개선'},
     {label:'neu', text:'😐 중립'},
   ];
   return opts.filter(o=>o.label!==currentLabel).map(o=>
-    `<button class="op-change-btn" onclick="changeLabel(${idx},'${o.label}')">${o.text}</button>`
+    `<button class="op-change-btn" onclick="changeLabel(${id},'${o.label}')">${o.text}</button>`
   ).join('');
 }
 
@@ -1361,11 +1362,11 @@ function openDashboard(){
           <div class="dash-inst-block">
             <div class="dash-inst-name">👨‍🏫 ${inst}${sectionTag}</div>
             ${iPos.map(r=>{
-              const idx=records.indexOf(r);
+              const idx=r._id;
               return `<div class="dash-op-row pos"><span class="dash-op-row-text">😊 ${r.text}</span><button class="op-change-btn" style="border-color:var(--neg);color:var(--neg)" onclick="changeLabel(${idx},'neg')">🔧 개선으로</button></div>`;
             }).join('')}
             ${iNeg.map(r=>{
-              const idx=records.indexOf(r);
+              const idx=r._id;
               return `<div class="dash-op-row neg"><span class="dash-op-row-text">🔧 ${r.text}</span><button class="op-change-btn" style="border-color:var(--pos);color:var(--pos)" onclick="changeLabel(${idx},'pos')">😊 긍정으로</button></div>`;
             }).join('')}
           </div>`;

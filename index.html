@@ -1361,12 +1361,16 @@ function dlReportTemplate(){
           : subjScoped.filter(r=>!r.inst);
         if(!scoped.length)return;
 
-        // 긍정 + 개선 의견을 함께 묶어서 "교육생 주요의견" 칸에 줄바꿈으로 정리
-        const posOps=scoped.filter(r=>r.label==='pos').map(r=>'(긍정) '+r.text);
-        const negOps=scoped.filter(r=>r.label==='neg').map(r=>'(개선) '+r.text);
-        // 선택된 의견이 있으면 전체, 없으면 최대 3개씩
-        const limit = selectedIds.size > 0 ? Infinity : 3;
-        const opinionText=[...posOps.slice(0,limit),...negOps.slice(0,limit)].join('\n');
+        // 긍정 + 개선 의견 — 선택된 의견 있으면 전체, 없으면 대표 의견 자동 선정
+        const posReps = selectedIds.size > 0
+          ? scoped.filter(r=>r.label==='pos')
+          : pickRepresentative(scoped.filter(r=>r.label==='pos'), 3);
+        const negReps = selectedIds.size > 0
+          ? scoped.filter(r=>r.label==='neg')
+          : pickRepresentative(scoped.filter(r=>r.label==='neg'), 3);
+        const posOps=posReps.map(r=>'(긍정) '+r.text);
+        const negOps=negReps.map(r=>'(개선) '+r.text);
+        const opinionText=[...posOps,...negOps].join('\n');
 
         // 분반 정보 — 같은 강사가 여러 분반에 출강한 경우 참고용으로 표기
         const sections=[...new Set(scoped.map(r=>r.section).filter(Boolean))].sort();
@@ -1408,6 +1412,59 @@ function topWordsFor(texts,n=8){
   const freq={};
   texts.forEach(t=>{(t.match(/[가-힣]{2,}/g)||[]).forEach(w=>{if(!stop.has(w))freq[w]=(freq[w]||0)+1;});});
   return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([w])=>w);
+}
+
+// 대표 의견 자동 선정
+// 기준: 1) 10자 이상 2) 핵심 키워드 밀도 높은 순 3) 앞 선정 의견과 중복 내용 최소화
+function pickRepresentative(opinions, n=3){
+  if(!opinions.length) return [];
+
+  // 10자 미만 제외
+  const filtered = opinions.filter(r => r.text.replace(/\s/g,'').length >= 10);
+  if(!filtered.length) return opinions.slice(0,n);
+
+  // 핵심 키워드 — 긍정/개선 공통으로 의미 있는 단어들
+  const KEY_POS = ['유익','체계','실용','전문','열정','도움','이해','적용','현업','실무','사례','알차','충실','효과'];
+  const KEY_NEG = ['부족','아쉬','개선','보완','필요','어렵','시간','실습','준비','자료','설명','이론','속도','반복'];
+
+  // 각 의견에 점수 부여
+  const scored = filtered.map(r => {
+    const words = r.text.match(/[가-힣]{2,}/g) || [];
+    const wordSet = new Set(words);
+    // 키워드 밀도 점수
+    const keyScore = [...KEY_POS, ...KEY_NEG].filter(kw => r.text.includes(kw)).length;
+    // 길이 점수 (너무 길면 감점 — 읽기 부담)
+    const lenScore = Math.min(r.text.length, 80) / 80;
+    // 고유 단어 수 (내용 풍부도)
+    const diversity = wordSet.size;
+    return { r, score: keyScore * 3 + lenScore + diversity * 0.5, words: wordSet };
+  });
+
+  scored.sort((a,b) => b.score - a.score);
+
+  // 중복 제거: 이미 선정된 의견과 겹치는 단어 비율이 60% 이상이면 제외
+  const selected = [];
+  const usedWords = new Set();
+
+  for(const item of scored){
+    if(selected.length >= n) break;
+    const overlap = [...item.words].filter(w => usedWords.has(w)).length;
+    const overlapRatio = item.words.size > 0 ? overlap / item.words.size : 0;
+    if(overlapRatio < 0.6){
+      selected.push(item.r);
+      item.words.forEach(w => usedWords.add(w));
+    }
+  }
+
+  // 선정 개수 부족하면 나머지로 채우기
+  if(selected.length < n){
+    for(const item of scored){
+      if(selected.length >= n) break;
+      if(!selected.includes(item.r)) selected.push(item.r);
+    }
+  }
+
+  return selected;
 }
 
 function openDashboard(){
@@ -1515,10 +1572,13 @@ function openDashboard(){
       let instHtml='';
       insts.forEach(inst=>{
         const instRecs=subjRecs.filter(r=>(r.inst||'(강사 미지정)')===inst);
-        // 선택된 의견이 있으면 전체 표시, 없으면 최대 3개
-        const limit = selectedIds.size > 0 ? Infinity : 3;
-        const iPos=instRecs.filter(r=>r.label==='pos').slice(0,limit);
-        const iNeg=instRecs.filter(r=>r.label==='neg').slice(0,limit);
+        // 선택된 의견이 있으면 전체, 없으면 대표 의견 자동 선정
+        const iPos = selectedIds.size > 0
+          ? instRecs.filter(r=>r.label==='pos')
+          : pickRepresentative(instRecs.filter(r=>r.label==='pos'), 3);
+        const iNeg = selectedIds.size > 0
+          ? instRecs.filter(r=>r.label==='neg')
+          : pickRepresentative(instRecs.filter(r=>r.label==='neg'), 3);
         if(!iPos.length&&!iNeg.length)return;
 
         const sections=[...new Set(instRecs.map(r=>r.section).filter(Boolean))].sort();

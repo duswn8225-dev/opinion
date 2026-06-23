@@ -902,8 +902,8 @@ function renderHierarchical(){
       let instHtml='';
       insts.forEach(inst=>{
         const instRecs=subjRecs.filter(r=>(r.inst||'(강사 미지정)')===inst);
-        const posRecs=instRecs.filter(r=>r.label==='pos');
-        const negRecs=instRecs.filter(r=>r.label==='neg');
+        const posRecs=instRecs.filter(r=>r.label==='pos').slice().sort((a,b)=>b.text.length-a.text.length);
+        const negRecs=instRecs.filter(r=>r.label==='neg').slice().sort((a,b)=>b.text.length-a.text.length);
 
         if(!posRecs.length&&!negRecs.length)return;
 
@@ -981,7 +981,8 @@ function renderFlatLists(){
 
   const renderFlat=(items,lbl)=>{
     if(!items.length)return'<div class="op-empty">해당 의견이 없습니다.</div>';
-    return items.map(r=>{
+    const sorted=[...items].sort((a,b)=>b.text.length-a.text.length);
+    return sorted.map(r=>{
       return `<div class="op-item ${lbl} ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)">
         <input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()">
         <div class="op-item-body">

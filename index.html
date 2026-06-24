@@ -1614,10 +1614,17 @@ function openDashboard(){
 
       if(!instHtml)return;
 
+      // 교과목 첫 설문일 계산
+      const dDateRaw=subjRecs.map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+      const dDateStr=dDateRaw.length===6
+        ?`${dDateRaw.slice(0,2)}.${dDateRaw.slice(2,4)}.${dDateRaw.slice(4,6)}`
+        :dDateRaw;
+
       subjHtml+=`
         <div class="dash-subj">
           <div class="dash-subj-head">
             📚 ${subj}
+            ${dDateStr?`<span style="font-size:11px;color:var(--muted);font-weight:400">${dDateStr}</span>`:''}
             <span class="dash-subj-stat" style="background:var(--pos-bg);color:var(--pos)">😊 ${sPos}</span>
             <span class="dash-subj-stat" style="background:var(--neg-bg);color:var(--neg)">🔧 ${sNeg}</span>
           </div>

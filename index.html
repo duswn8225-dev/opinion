@@ -784,13 +784,14 @@ function runAnalysis(){
     const parsed=parseInstructor(r['강사명']);
 
     records.push({
-      _id: records.length, // 고유 ID — indexOf 대신 이걸로 찾음
+      _id: records.length,
       text,
       label,
       course:String(r['설문제목']||'').trim(),
       subject:String(r['과목명']||'').trim(),
       inst:parsed.name,
       section:parsed.section,
+      surveyDate:String(r['설문일']||'').trim(), // YYMMDD 형식 — 정렬 키로 사용
       qtype,
     });
 
@@ -884,9 +885,10 @@ function renderHierarchical(){
     // 교과목 목록 (과정 내에서)
     const subjects=[...new Set(courseRecs.map(r=>r.subject||'(교과목 미지정)'))];
     subjects.sort((a,b)=>{
-      const aTotal=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===a).length;
-      const bTotal=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===b).length;
-      return bTotal-aTotal;
+      // 교과목별 가장 이른 설문일 기준 오름차순 정렬
+      const aDate=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===a).map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+      const bDate=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===b).map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+      return aDate.localeCompare(bDate);
     });
 
     let subjHtml='';
@@ -939,10 +941,16 @@ function renderHierarchical(){
 
       if(!instHtml)return;
 
+      // 교과목 첫 설문일 계산 (YYMMDD → YY.MM.DD)
+      const subjDateRaw=subjRecs.map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+      const subjDateStr=subjDateRaw.length===6
+        ?`${subjDateRaw.slice(0,2)}.${subjDateRaw.slice(2,4)}.${subjDateRaw.slice(4,6)}`
+        :subjDateRaw;
+
       subjHtml+=`
         <div class="subj-box">
           <div class="subj-head" onclick="toggleHier(this)">
-            <span class="subj-title">📚 ${subj} <span class="subj-badge">${subjRecs.length}건</span></span>
+            <span class="subj-title">📚 ${subj} <span class="subj-badge">${subjRecs.length}건</span>${subjDateStr?`<span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:6px">${subjDateStr}</span>`:''}</span>
             <span style="font-size:12px;color:var(--muted)">
               😊 ${subjPos} · 🔧 ${subjNeg} ▾
             </span>
@@ -1345,7 +1353,14 @@ function dlReportTemplate(){
 
   let seq=1;
   courses.forEach(course=>{
-    const subjects=[...new Set(records.filter(r=>r.course===course).map(r=>r.subject))].filter(Boolean);
+    const courseRecs=records.filter(r=>r.course===course);
+    const subjects=[...new Set(courseRecs.map(r=>r.subject))].filter(Boolean);
+    // 설문일 기준 오름차순 정렬
+    subjects.sort((a,b)=>{
+      const aDate=courseRecs.filter(r=>r.subject===a).map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+      const bDate=courseRecs.filter(r=>r.subject===b).map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+      return aDate.localeCompare(bDate);
+    });
     const targetSubjects = subjects.length ? subjects : [''];
 
     targetSubjects.forEach(subject=>{
@@ -1559,7 +1574,11 @@ function openDashboard(){
     const cTotal=courseRecs.length;
 
     const subjects=[...new Set(courseRecs.map(r=>r.subject||'(교과목 미지정)'))]
-      .sort((a,b)=>courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===b).length-courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===a).length);
+      .sort((a,b)=>{
+        const aDate=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===a).map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+        const bDate=courseRecs.filter(r=>(r.subject||'(교과목 미지정)')===b).map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+        return aDate.localeCompare(bDate);
+      });
 
     let subjHtml='';
     subjects.forEach(subj=>{

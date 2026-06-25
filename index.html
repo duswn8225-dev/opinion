@@ -629,12 +629,13 @@ function loadFile(file){
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
 
-      // '설문제목' 컬럼을 가진 시트를 우선 탐색 (시트명이 CustomQuery가 아니어도 대응)
+      // '설문제목' 또는 '과정명' 컬럼을 가진 시트를 우선 탐색
       let sname=null;
       for(const n of wb.SheetNames){
         const sample=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:'',range:0});
-        if(sample.length && Object.keys(sample[0]).includes('설문제목')){
-          sname=n; break;
+        if(sample.length){
+          const keys=Object.keys(sample[0]);
+          if(keys.includes('설문제목')||keys.includes('과정명')){sname=n;break;}
         }
       }
       if(!sname){
@@ -642,12 +643,50 @@ function loadFile(file){
       }
 
       const data=XLSX.utils.sheet_to_json(wb.Sheets[sname],{defval:''});
-      rawData=data;
-      console.log('시트 목록:',wb.SheetNames,'선택된 시트:',sname,'행수:',data.length,'컬럼:',data.length?Object.keys(data[0]):[]);
-      buildFilters(data,sname);
+      // 파일 형식에 따라 컬럼 정규화
+      rawData=normalizeData(data);
+      console.log('시트:',sname,'행수:',rawData.length,'컬럼:',rawData.length?Object.keys(rawData[0]):[]);
+      buildFilters(rawData,sname);
     }catch(e){showErr('fileErr','파일을 읽을 수 없습니다: '+e.message);}
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ── 파일 형식 정규화
+// 어떤 형식이든 내부적으로 통일된 컬럼명으로 변환
+// 지원 형식:
+//   A) 설문제목+과목명+강사명+응답문항+응답내용+설문일  (기존 CustomQuery)
+//   B) 설문제목+과목명(강사포함)+응답문항+응답내용  (신임관리자_0615 형식)
+//   C) 과정명+설문제목(날짜+교과목+강사포함)+응답구분+응답내용  (신임과장 형식)
+function normalizeData(data){
+  if(!data.length)return data;
+  const cols=Object.keys(data[0]);
+
+  // 형식 C: '과정명' 컬럼 있고 '설문제목'에 날짜+교과목+강사 포함
+  if(cols.includes('과정명') && !cols.includes('과목명')){
+    return data.map(r=>{
+      // "설문제목" = "(124기 신임과장과정) 260623 교과목 및 강사평가 [ 과장의 역할과 책임 / 강사 : 이찬희 ]"
+      const raw=String(r['설문제목']||'').trim();
+      // 날짜 추출: 6자리 숫자
+      const dateM=raw.match(/\b(\d{6})\b/);
+      const surveyDate=dateM?dateM[1]:'';
+      // [ 교과목 / 강사 : 강사명 ] 패턴 파싱
+      const bracketM=raw.match(/\[\s*(.*?)\s*\/\s*강사\s*:\s*(.*?)\s*\]/);
+      const subject=bracketM?bracketM[1].trim():'';
+      const inst=bracketM?bracketM[2].trim():'';
+      return {
+        '설문제목': String(r['과정명']||'').trim(),
+        '과목명':   subject,
+        '강사명':   inst,
+        '응답문항': String(r['응답구분']||r['응답문항']||'').trim(),
+        '응답내용': String(r['응답내용']||'').trim(),
+        '설문일':   surveyDate,
+      };
+    });
+  }
+
+  // 형식 A/B: 설문제목 컬럼 있는 경우 — 그대로 반환 (강사명 유무는 런타임에 판별)
+  return data;
 }
 
 function buildFilters(data,sname){

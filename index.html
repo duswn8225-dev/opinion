@@ -978,46 +978,89 @@ function renderHierarchical(){
       const subjNeg=subjRecs.filter(r=>r.label==='neg').length;
 
       // 강사 목록 (교과목 내에서)
-      const insts=[...new Set(subjRecs.map(r=>r.inst||'(강사 미지정)'))];
-      insts.sort((a,b)=>subjRecs.filter(r=>(r.inst||'(강사 미지정)')===b).length - subjRecs.filter(r=>(r.inst||'(강사 미지정)')===a).length);
+      // 강사가 없는 경우 설문일 기준으로 그룹핑
+      const hasInst=subjRecs.some(r=>r.inst&&r.inst.trim());
 
       let instHtml='';
-      insts.forEach(inst=>{
-        const instRecs=subjRecs.filter(r=>(r.inst||'(강사 미지정)')===inst);
-        const posRecs=instRecs.filter(r=>r.label==='pos').slice().sort((a,b)=>b.text.length-a.text.length);
-        const negRecs=instRecs.filter(r=>r.label==='neg').slice().sort((a,b)=>b.text.length-a.text.length);
 
-        if(!posRecs.length&&!negRecs.length)return;
+      if(hasInst){
+        // 강사 있는 경우 — 기존 방식: 강사별 그룹
+        const insts=[...new Set(subjRecs.map(r=>r.inst||'(강사 미지정)'))];
+        insts.sort((a,b)=>subjRecs.filter(r=>(r.inst||'(강사 미지정)')===b).length - subjRecs.filter(r=>(r.inst||'(강사 미지정)')===a).length);
 
-        const posHtml=posRecs.length?`
-          <div class="hier-section">
-            <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
-            ${posRecs.map(r=>`<div class="op-item pos ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
-          </div>`:'';
+        insts.forEach(inst=>{
+          const instRecs=subjRecs.filter(r=>(r.inst||'(강사 미지정)')===inst);
+          const posRecs=instRecs.filter(r=>r.label==='pos').slice().sort((a,b)=>b.text.length-a.text.length);
+          const negRecs=instRecs.filter(r=>r.label==='neg').slice().sort((a,b)=>b.text.length-a.text.length);
+          if(!posRecs.length&&!negRecs.length)return;
 
-        const negHtml=negRecs.length?`
-          <div class="hier-section">
-            <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
-            ${negRecs.map(r=>`<div class="op-item neg ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
-          </div>`:'';
+          const posHtml=posRecs.length?`
+            <div class="hier-section">
+              <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
+              ${posRecs.map(r=>`<div class="op-item pos ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
+            </div>`:'';
+          const negHtml=negRecs.length?`
+            <div class="hier-section">
+              <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
+              ${negRecs.map(r=>`<div class="op-item neg ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
+            </div>`:'';
 
-        // 통합된 분반 목록 표시 (예: A반, B반)
-        const sections=[...new Set(instRecs.map(r=>r.section).filter(Boolean))].sort();
-        const sectionTag=sections.length?` <span style="font-size:11px;color:var(--faint);font-weight:400">(${sections.join(', ')})</span>`:'';
+          const sections=[...new Set(instRecs.map(r=>r.section).filter(Boolean))].sort();
+          const sectionTag=sections.length?` <span style="font-size:11px;color:var(--faint);font-weight:400">(${sections.join(', ')})</span>`:'';
 
-        instHtml+=`
-          <div class="inst-box">
-            <div class="inst-head" onclick="toggleHier(this)">
-              <span class="inst-title">👨‍🏫 ${inst}${sectionTag}</span>
-              <span style="font-size:12px;color:var(--muted)">
-                <span style="color:var(--pos);font-weight:600">${posRecs.length}</span> / <span style="color:var(--neg);font-weight:600">${negRecs.length}</span> ▾
-              </span>
-            </div>
-            <div class="inst-body">
-              ${posHtml}${negHtml}
-            </div>
-          </div>`;
-      });
+          instHtml+=`
+            <div class="inst-box">
+              <div class="inst-head" onclick="toggleHier(this)">
+                <span class="inst-title">👨‍🏫 ${inst}${sectionTag}</span>
+                <span style="font-size:12px;color:var(--muted)">
+                  <span style="color:var(--pos);font-weight:600">${posRecs.length}</span> / <span style="color:var(--neg);font-weight:600">${negRecs.length}</span> ▾
+                </span>
+              </div>
+              <div class="inst-body">
+                ${posHtml}${negHtml}
+              </div>
+            </div>`;
+        });
+
+      } else {
+        // 강사 없는 경우 — 설문일 기준으로 그룹핑
+        const dates=[...new Set(subjRecs.map(r=>r.surveyDate||'').filter(Boolean))].sort();
+        const groups=dates.length>1 ? dates : [''];
+
+        groups.forEach(date=>{
+          const dateRecs=date ? subjRecs.filter(r=>r.surveyDate===date) : subjRecs;
+          const posRecs=dateRecs.filter(r=>r.label==='pos').slice().sort((a,b)=>b.text.length-a.text.length);
+          const negRecs=dateRecs.filter(r=>r.label==='neg').slice().sort((a,b)=>b.text.length-a.text.length);
+          if(!posRecs.length&&!negRecs.length)return;
+
+          // 날짜 표시 YYMMDD → YY.MM.DD
+          const dateLabel=date.length===6?`${date.slice(0,2)}.${date.slice(2,4)}.${date.slice(4,6)}`:date;
+
+          const posHtml=posRecs.length?`
+            <div class="hier-section">
+              <div class="hier-section-title pos">😊 긍정의견 <span class="hier-mini-stat pos">${posRecs.length}건</span></div>
+              ${posRecs.map(r=>`<div class="op-item pos ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
+            </div>`:'';
+          const negHtml=negRecs.length?`
+            <div class="hier-section">
+              <div class="hier-section-title neg">🔧 개선필요 <span class="hier-mini-stat neg">${negRecs.length}건</span></div>
+              ${negRecs.map(r=>`<div class="op-item neg ${selectedIds.has(r._id)?'selected':''}" draggable="true" data-id="${r._id}" onmousedown="itemDragInit()" ondragstart="onItemDragStart(event)" ondragend="onItemDragEnd(event)"><input type="checkbox" class="op-item-cb" ${selectedIds.has(r._id)?'checked':''} onchange="toggleSelect(${r._id},this.checked)" onclick="event.stopPropagation()"><div class="op-item-body">${r.text}</div></div>`).join('')}
+            </div>`:'';
+
+          instHtml+=`
+            <div class="inst-box">
+              <div class="inst-head" onclick="toggleHier(this)">
+                <span class="inst-title">📅 ${dateLabel||'(날짜 미지정)'}</span>
+                <span style="font-size:12px;color:var(--muted)">
+                  <span style="color:var(--pos);font-weight:600">${posRecs.length}</span> / <span style="color:var(--neg);font-weight:600">${negRecs.length}</span> ▾
+                </span>
+              </div>
+              <div class="inst-body">
+                ${posHtml}${negHtml}
+              </div>
+            </div>`;
+        });
+      }
 
       if(!instHtml)return;
 

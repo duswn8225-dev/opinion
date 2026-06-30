@@ -476,7 +476,7 @@ body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var
       <div class="dl-row" style="margin-top:8px">
         <button class="btn btn-sm" style="border-color:var(--accent);color:var(--accent)" onclick="dlReportTemplate()">📄 주간 강사만족도 보고서 양식으로 다운로드</button>
       </div>
-      <div style="font-size:11px;color:var(--faint);margin-top:6px">※ 교육생 주요의견 칸만 자동 입력되며, 만족도 점수·출강일 등은 직접 채우시면 됩니다.</div>
+      <div style="font-size:11px;color:var(--faint);margin-top:6px">※ 출강일·교육생 주요의견 칸은 자동 입력되며, 만족도 점수 등은 직접 채우시면 됩니다.</div>
     </div>
   </div>
 </div>
@@ -1515,10 +1515,16 @@ function dlReportTemplate(){
         const sections=[...new Set(scoped.map(r=>r.section).filter(Boolean))].sort();
         const sectionNote=sections.length?`분반: ${sections.join(', ')}`:'';
 
+        // 출강일 — 설문일(YYMMDD) 중 가장 이른 날짜를 YY.MM.DD 형식으로 표시
+        const dateRaw=scoped.map(r=>r.surveyDate).filter(Boolean).sort()[0]||'';
+        const dateStr=dateRaw.length===6
+          ?`${dateRaw.slice(0,2)}.${dateRaw.slice(2,4)}.${dateRaw.slice(4,6)}`
+          :dateRaw;
+
         rows.push([
           seq++,
           course,
-          '',          // 출강일 — 직접 입력
+          dateStr,     // 출강일 — 설문일 기준 자동 입력
           subject||'', // 강의제목 — 교과목명으로 대체 표기 (직접 수정 가능)
           '',          // 교과목 만족도 — 직접 입력
           inst||'',
